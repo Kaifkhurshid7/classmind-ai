@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
 import { keys, useLecture } from '../../api/queries';
@@ -137,8 +137,15 @@ function LectureView({ id, detail }: { id: string; detail: LectureDetail }) {
   const tab: TabKey = TABS.some((t) => t[0] === requested) ? requested! : 'overview';
   const [renaming, setRenaming] = useState(false);
 
+  const tabsRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
+
+  // On narrow screens the tab bar scrolls sideways: keep the active tab visible
+  useEffect(() => {
+    const el = tabsRef.current?.querySelector<HTMLElement>('.tab.active');
+    el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [tab]);
 
   const refresh = useCallback(() => qc.invalidateQueries({ queryKey: keys.lecture(id) }), [qc, id]);
   const setTab = useCallback((t: TabKey) => setParams({ tab: t }, { replace: true }), [setParams]);
@@ -275,7 +282,7 @@ function LectureView({ id, detail }: { id: string; detail: LectureDetail }) {
               </div>
             )}
 
-            <div className="tabs" role="tablist">
+            <div className="tabs" role="tablist" ref={tabsRef}>
               {TABS.map(([k, label, ic]) => (
                 <button key={k} className={'tab' + (tab === k ? ' active' : '')} role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>
                   <Icon name={ic} size={17} />
