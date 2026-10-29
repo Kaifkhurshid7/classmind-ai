@@ -521,7 +521,7 @@ make lint        # ruff + TypeScript type check
 - **Accessible components**: a "Skip to main content" link, labelled controls, and a custom dropdown with full keyboard support (arrows, Home/End, Enter, Escape, type-ahead).
 - **Motion**: animations are reduced for people who prefer reduced motion.
 - **Error handling**: an error boundary shows a friendly message instead of a blank page if rendering fails.
-- **Original artwork**: the logo, hero illustration, subject covers and avatars are inline SVG in `frontend/src/components/Art.tsx`. No external images are loaded.
+- **Original artwork**: the logo, hero illustration, subject covers and illustrated faculty portraits are inline SVG in `frontend/src/components/Art.tsx`. No external images are loaded.
 
 ## Legal pages and site details
 
