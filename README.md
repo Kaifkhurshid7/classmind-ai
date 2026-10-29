@@ -1,0 +1,98 @@
+# ClassMind AI (prototype)
+
+> The AI learning layer for every classroom. Turn every lecture into personalised learning.
+
+A teacher speaks, ClassMind records and transcribes the lecture, AI turns it into structured
+notes, and students learn from it with an AI tutor, quizzes, flashcards and a personal revision
+plan. Everything exports to a cleanly aligned PDF.
+
+## Tech stack
+
+| Layer | Choice |
+|-------|--------|
+| Backend | Python 3.10+, Flask (app factory + blueprints), SQLite |
+| AI | Anthropic Claude (`anthropic` SDK) with a built-in offline fallback engine |
+| Export | ReportLab (PDF), Markdown / text |
+| Frontend | Vanilla JS + CSS (no build step), Web Speech API and MediaRecorder |
+| Quality | pytest, ruff, GitHub Actions CI |
+| Deploy | Docker / docker-compose, gunicorn |
+
+## Quick start
+
+```bash
+make install                      # or: pip install -r backend/requirements-dev.txt
+cp .env.example .env              # optional: set ANTHROPIC_API_KEY for Claude-powered output
+make run                          # or: cd backend && python wsgi.py
+```
+
+Open **http://localhost:5000** in **Chrome or Edge** and allow the microphone.
+Demo courses and lectures are created on first run (set `CLASSMIND_SEED=0` to disable).
+The app works without an API key using the offline engine; with a key, Claude produces much better results.
+
+With Docker: `docker compose up --build`. Tests: `make test`. Lint: `make lint`.
+
+## Features
+
+**Capture (teacher)**
+- Recording studio with live speech-to-text (English, Hindi, Odia), pause/resume and a live level meter
+- Timestamped transcript lines and the original **audio is saved** with the lecture
+- Live notes panel that updates while the teacher speaks
+- No microphone? Paste text or upload a `.txt` transcript instead
+
+**Learn (student)**
+- Course-style lecture page: audio player (speed control), overview, notes, transcript, tutor, quiz, flashcards
+- Transcript search, click a timestamp to jump the audio, the current line highlights as it plays
+- Bookmark important moments
+- **AI tutor** answers from the lecture only; modes: normal, explain simply, give an example, summarise. Chat history is saved
+- **Quiz**: multiple-choice questions, instant scoring, answer review with explanations, attempt history
+- **Flashcards** from key concepts and practice questions, with progress tracking and keyboard shortcuts
+- **Personalised revision plan** built from your weak quiz topics and the questions you asked
+- Short-answer practice questions with reveal
+
+**Organise**
+- Courses and lectures stored in SQLite, library with search across titles, notes and transcripts
+- Edit notes, fix the transcript, rename or delete lectures, regenerate notes with AI
+
+**Analytics (teacher)**
+- Quiz performance per lecture, learning gaps (concepts students miss most), most-asked questions, 14-day activity
+
+**Export**
+- PDF (notes + transcript, notes only, transcript only) with timestamps, bookmarks and Q&A
+- Markdown and plain text
+
+**Roles**: switch between Teacher and Student view from the top bar (demo role switch, no login yet).
+
+## Project layout
+
+```
+backend/
+  app/
+    __init__.py        create_app() application factory
+    config.py          Environment-driven configuration
+    database.py        SQLite schema and connection helpers
+    errors.py          JSON error handlers, SPA fallback
+    seed.py            Demo courses and lectures
+    api/               HTTP layer (one blueprint per area)
+      system.py  courses.py  lectures.py  learning.py  analytics.py  exports.py
+    services/          Business logic, no HTTP concerns
+      ai_engine.py     Notes + tutor (Claude, with offline fallback)
+      quiz.py          Quiz generation + revision plans
+      lectures.py      Shared lecture queries and serializers
+      exporters.py     Markdown / text export
+      pdf_export.py    PDF generation
+  tests/               pytest suite
+  wsgi.py              Dev server / gunicorn entry point
+frontend/              index.html, css/, js/ (served at /static)
+docs/API.md            API reference
+data/                  Created at runtime (SQLite DB + audio), git-ignored
+```
+
+See [docs/API.md](docs/API.md) for the endpoint list.
+
+## Notes and limits (prototype)
+
+- Speech recognition runs in the browser (Chrome/Edge) and needs an internet connection. Pages must be opened via `localhost` or HTTPS for microphone access.
+- Offline mode quality is basic (keyword-based). Set `ANTHROPIC_API_KEY` for real AI.
+- No login or multi-user separation yet: Teacher/Student is a view switch. Next steps: authentication, LMS integration (Moodle, Canvas, Google Classroom), per-student progress, classroom audio hardware, speech models that transcribe uploaded audio.
+- Hindi/Odia text in PDFs needs a matching font added in `backend/app/services/pdf_export.py`.
+# classmind-ai

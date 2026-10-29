@@ -1,0 +1,17 @@
+[project]
+name = "classmind-ai"
+version = "0.2.0"
+description = "The AI learning layer for every classroom."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 140
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["E501"]

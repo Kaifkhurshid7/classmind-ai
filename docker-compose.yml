@@ -1,0 +1,13 @@
+services:
+  classmind:
+    build: .
+    ports:
+      - "5000:5000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - classmind-data:/data
+
+volumes:
+  classmind-data:
