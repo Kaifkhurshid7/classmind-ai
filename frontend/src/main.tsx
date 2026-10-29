@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ConfirmProvider } from './components/Modal';
 import { RoleProvider } from './context/RoleContext';
 import { ToastProvider } from './context/ToastContext';
@@ -19,7 +20,9 @@ createRoot(document.getElementById('root')!).render(
         <RoleProvider>
           <ToastProvider>
             <ConfirmProvider>
-              <App />
+              <ErrorBoundary>
+                <App />
+              </ErrorBoundary>
             </ConfirmProvider>
           </ToastProvider>
         </RoleProvider>

@@ -9,7 +9,7 @@ export function Privacy() {
   return (
     <LegalPage title="Privacy Policy">
       <p>
-        This policy explains what information {site.name} handles when teachers record lectures and students learn from them, how it is used, who it is shared with, and the choices you have.
+        This policy explains what information {site.name} handles when teachers record lectures and students learn from them, how it is used, who it is shared with, and the choices you have.{' '}
         {site.operator} (&ldquo;we&rdquo;, &ldquo;us&rdquo;) operates the service.
       </p>
 

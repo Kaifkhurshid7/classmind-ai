@@ -6,6 +6,10 @@ import { CoursePage } from './pages/Course';
 import { Dashboard } from './pages/Dashboard';
 import { Library } from './pages/Library';
 import { LecturePage } from './pages/lecture/LecturePage';
+import { Contact } from './pages/legal/Contact';
+import { Cookies } from './pages/legal/Cookies';
+import { Privacy } from './pages/legal/Privacy';
+import { Terms } from './pages/legal/Terms';
 import { Studio } from './pages/Studio';
 
 function NotFound() {
@@ -36,6 +40,10 @@ export default function App() {
         <Route path="lecture/:id" element={<LecturePage />} />
         <Route path="record" element={<Studio />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="privacy" element={<Privacy />} />
+        <Route path="terms" element={<Terms />} />
+        <Route path="cookies" element={<Cookies />} />
+        <Route path="contact" element={<Contact />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
