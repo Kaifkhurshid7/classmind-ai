@@ -36,6 +36,23 @@ The app works without an API key using the offline engine; with a key, Claude pr
 
 With Docker: `docker compose up --build`. Tests: `make test`. Lint and type-check: `make lint`.
 
+## Demo data
+
+On first run the app is filled with a realistic sample school so every screen has something to show:
+
+- **5 courses** (Biology, Physics, Python, Modern Indian History, Microeconomics), each with an instructor, title and department
+- **10 lectures of 10 to 13 minutes** (about 1,200 to 1,550 words each) with full spoken-style transcripts, timestamps and hand-written notes (summary, key points, concepts, sections, practice questions)
+- Quizzes, flashcards, tutor conversations, bookmarks and about 50 quiz attempts spread over the last month, so the analytics dashboard (trends, course comparison, score distribution, learning gaps, activity feed) is fully populated
+
+All people and content are fictional. Edit `backend/app/demo_data.py` (and the `demo_more_*.py` files with the second half of each lecture) to change it, then run `make reseed` to
+wipe the database and reload (this deletes everything in it). Set `CLASSMIND_SEED=0` to start empty.
+The demo lectures have no audio file, so the player is hidden for them; lectures recorded in the studio do.
+
+## Brand and artwork
+
+The logo (open book with an AI spark), favicon, hero illustration, subject covers for courses and faculty avatars are
+original inline SVG in `frontend/src/components/Art.tsx` and `frontend/public/favicon.svg`. No external images are loaded.
+
 ## Features
 
 **Capture (teacher)**
@@ -76,7 +93,8 @@ backend/
     config.py          Environment-driven configuration
     database.py        SQLite schema and connection helpers
     errors.py          JSON error handlers, SPA fallback
-    seed.py            Demo courses and lectures
+    seed.py            Loads the demo data (python -m app.seed --reset)
+    demo_data.py       Sample courses, faculty, transcripts and notes
     api/               HTTP layer (one blueprint per area)
       system.py  courses.py  lectures.py  learning.py  analytics.py  exports.py
     services/          Business logic, no HTTP concerns
@@ -90,7 +108,7 @@ backend/
 frontend/              React + TypeScript app (Vite)
   src/
     api/               Fetch client, TanStack Query hooks, API types
-    components/        Layout, modals, menu, shared UI
+    components/        Layout, modals, menu, shared UI, Art (logo, hero and course artwork)
     context/           Role (teacher/student), toasts
     hooks/             useRecorder (speech-to-text, audio capture, level meter)
     pages/             Dashboard, Library, Course, Analytics, Studio, lecture/ (tabs)
