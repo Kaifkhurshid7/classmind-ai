@@ -10,6 +10,7 @@ import { ToastProvider } from './context/ToastContext';
 import './styles/style.css';
 import './styles/footer-pages.css';
 import './styles/analytics.css';
+import './styles/responsive.css';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },

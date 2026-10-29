@@ -119,6 +119,14 @@ data/                  Created at runtime (SQLite DB + audio), git-ignored
 
 See [docs/API.md](docs/API.md) for the endpoint list.
 
+## Responsive design
+
+The UI is mobile-first friendly and has been checked with real device emulation at 320, 360, 390, 768 and 900 px
+wide (no horizontal overflow on any page). Layout rules for tablet and phone live in
+`frontend/src/styles/responsive.css`: icon-only navigation on tablets, single-column cards and full-width form fields
+on phones, horizontally scrolling tab bars and tables, 16 px inputs (no iOS zoom), larger tap targets on touch devices
+and reduced-motion support.
+
 ## Legal pages and site details
 
 The app includes a Privacy Policy, Terms of Service, Cookie & Storage Policy and a Contact & Support page
