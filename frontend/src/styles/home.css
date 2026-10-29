@@ -87,3 +87,43 @@
   .hero h1 { font-size: 30px; }
   .hero-points { gap: 8px 16px; font-size: 13px; }
 }
+
+/* ---- lecture rows v2 ---- */
+.lecture-row { grid-template-columns: 176px minmax(0, 1fr) auto; gap: 22px; padding: 16px 22px; transition: background .15s; }
+.lecture-row .thumb { height: 108px; border-radius: 12px; overflow: hidden; }
+.lecture-course { display: block; font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 4px; color: var(--brand); }
+.lecture-row h3 { font-size: 18px; line-height: 1.3; margin-bottom: 6px; transition: color .15s; }
+.lecture-row:hover h3 { color: var(--brand); }
+.lecture-row .meta-row { gap: 6px 16px; font-size: 13.5px; color: var(--ink-3, #667085); margin-top: 0; }
+.lecture-row .snippet { margin-top: 8px; font-size: 14px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.lecture-row .end { display: flex; align-items: center; gap: 14px; }
+.lecture-go { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--ink-3, #667085); background: #f1f4f9; transition: background .15s, color .15s, transform .15s; }
+.lecture-row:hover .lecture-go { background: var(--brand); color: #fff; transform: translateX(2px); }
+@media (max-width: 900px) { .lecture-row { grid-template-columns: 132px minmax(0, 1fr); } .lecture-row .thumb { height: 92px; } .lecture-row .end { display: none; } }
+@media (max-width: 560px) { .lecture-row { grid-template-columns: 84px minmax(0, 1fr); padding: 14px; gap: 14px; } .lecture-row .thumb { height: 72px; border-radius: 10px; } .lecture-row h3 { font-size: 16px; } }
+
+/* ---- faculty profile cards ---- */
+.avatar-portrait { display: block; border-radius: 50%; flex-shrink: 0; box-shadow: 0 0 0 3px rgba(255, 255, 255, .9), 0 2px 8px rgba(15, 23, 42, .2); background: #fff; }
+.course-card .by .avatar-portrait { box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(15, 23, 42, .2); }
+.faculty-grid2 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.fcard { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid #e3e9f2; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-sm); transition: box-shadow .18s, transform .18s; }
+.fcard:hover { box-shadow: var(--shadow-lg); transform: translateY(-3px); }
+.fcard-banner { position: relative; height: 92px; overflow: hidden; }
+.fcard-banner::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 18% 120%, rgba(255, 255, 255, .22), transparent 55%), radial-gradient(circle at 85% -10%, rgba(255, 255, 255, .18), transparent 45%); }
+.fcard-banner .thumb-art { position: absolute; right: -4%; top: 0; width: 70%; height: 100%; opacity: .5; }
+.fcard-avatar { display: flex; justify-content: center; margin-top: -46px; position: relative; z-index: 1; }
+.fcard-avatar .avatar-portrait { box-shadow: 0 0 0 5px #fff, 0 8px 20px rgba(15, 23, 42, .2); }
+.fcard-body { padding: 14px 20px 8px; text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; }
+.fcard-body h3 { font-size: 18px; margin-bottom: 4px; }
+.fcard-role { margin: 0; font-weight: 700; color: var(--brand); font-size: 14px; }
+.fcard-dept { margin: 2px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.4; }
+.fcard-stats { display: grid; grid-template-columns: repeat(3, 1fr); width: 100%; margin: 16px 0 14px; padding: 12px 0; border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); }
+.fcard-stats div { display: flex; flex-direction: column; gap: 1px; }
+.fcard-stats div + div { border-left: 1px solid var(--line-2); }
+.fcard-stats b { font-size: 18px; color: var(--ink); }
+.fcard-stats span { font-size: 12px; color: var(--muted); font-weight: 600; }
+.fcard .faculty-courses { justify-content: center; margin: 0 0 8px; }
+.fcard-link { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 13px; margin-top: auto; border-top: 1px solid var(--line-2); font-weight: 700; font-size: 14.5px; color: var(--brand); background: #fafcff; transition: background .15s; }
+.fcard-link:hover { background: var(--brand-tint); text-decoration: none; }
+@media (max-width: 1100px) { .faculty-grid2 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .faculty-grid2 { grid-template-columns: 1fr; gap: 16px; } }
