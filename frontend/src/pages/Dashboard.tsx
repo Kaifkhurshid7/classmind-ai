@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useOverview } from '../api/queries';
+import { Avatar, HeroArt } from '../components/Art';
 import { Async, CourseCard, EmptyState, LectureRow, StatTile, Thumb } from '../components/Common';
 import { CourseDialog } from '../components/CourseDialog';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { useRole } from '../context/RoleContext';
 import { fmtDur } from '../lib/format';
 
-const STEPS: [string, string, string][] = [
-  ['LEARN', 'Capture', 'Speak naturally. The lecture is recorded and transcribed live, with timestamps.'],
-  ['UNDERSTAND', 'Structure', 'AI turns the transcript into a summary, key concepts and organised notes.'],
-  ['PRACTICE', 'Test yourself', 'Ask the tutor, take quizzes and review flashcards generated from the lecture.'],
-  ['GROW', 'Improve', 'Learning-gap analytics show what to revisit, with a personal revision plan.'],
+const STEPS: [string, string, string, IconName][] = [
+  ['LEARN', 'Capture', 'Speak naturally. The lecture is recorded and transcribed live, with timestamps.', 'mic'],
+  ['UNDERSTAND', 'Structure', 'AI turns the transcript into a summary, key concepts and organised notes.', 'file'],
+  ['PRACTICE', 'Test yourself', 'Ask the tutor, take quizzes and review flashcards generated from the lecture.', 'help'],
+  ['GROW', 'Improve', 'Learning-gap analytics show what to revisit, with a personal revision plan.', 'chart'],
 ];
 
 export function Dashboard() {
@@ -25,11 +26,15 @@ export function Dashboard() {
       {(d) => {
         const s = d.stats;
         const c = d.continue;
+        const faculty = [...new Set(d.courses.filter((x) => x.instructor).map((x) => x.instructor!))].map((name) => {
+          const owned = d.courses.filter((x) => x.instructor === name);
+          return { name, title: owned[0].instructor_title || '', courses: owned };
+        });
         return (
           <div>
             <section className="hero">
               <div className="container hero-inner">
-                <div>
+                <div className="hero-copy">
                   <div className="badge mb-16">LEARN · UNDERSTAND · PRACTICE · GROW</div>
                   <h1>Welcome back, {displayName}</h1>
                   <p>
@@ -51,13 +56,20 @@ export function Dashboard() {
                   </div>
                 </div>
                 <div className="hero-art">
-                  <StatTile value={s.lectures} label="Lectures" />
-                  <StatTile value={fmtDur(s.minutes * 60)} label="Recorded time" />
-                  <StatTile value={s.quizzes} label="Quizzes taken" />
-                  <StatTile value={s.avg === null ? '–' : s.avg + '%'} label="Average quiz score" />
+                  <HeroArt />
                 </div>
               </div>
             </section>
+
+            <div className="container">
+              <div className="stats-strip">
+                <StatTile value={s.lectures} label="Lectures" />
+                <StatTile value={s.courses} label="Courses" />
+                <StatTile value={fmtDur(s.minutes * 60)} label="Recorded time" />
+                <StatTile value={s.quizzes} label="Quizzes taken" />
+                <StatTile value={s.avg === null ? '–' : s.avg + '%'} label="Average quiz score" />
+              </div>
+            </div>
 
             <div className="container page">
               {c && (
@@ -112,6 +124,32 @@ export function Dashboard() {
                 <EmptyState icon="folder" title="No courses yet" text="Your teacher has not published any courses." />
               )}
 
+              {faculty.length > 0 && (
+                <>
+                  <div className="section-head">
+                    <h2>Meet your faculty</h2>
+                  </div>
+                  <div className="grid grid-3 faculty-grid">
+                    {faculty.map((f) => (
+                      <div className="card faculty-card" key={f.name}>
+                        <Avatar name={f.name} size={56} />
+                        <div>
+                          <h3>{f.name}</h3>
+                          <div className="muted small">{f.title}</div>
+                          <div className="faculty-courses">
+                            {f.courses.map((c) => (
+                              <Link key={c.id} to={`/course/${c.id}`} className="badge">
+                                {c.name}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+
               <div className="section-head">
                 <h2>Recent lectures</h2>
                 <Link to="/library">See all</Link>
@@ -139,8 +177,11 @@ export function Dashboard() {
                 <h2>How ClassMind works</h2>
               </div>
               <div className="card steps">
-                {STEPS.map(([n, t, p]) => (
+                {STEPS.map(([n, t, p, ic]) => (
                   <div className="step" key={n}>
+                    <div className="step-icon">
+                      <Icon name={ic} size={20} />
+                    </div>
                     <div className="n">{n}</div>
                     <h3>{t}</h3>
                     <p>{p}</p>

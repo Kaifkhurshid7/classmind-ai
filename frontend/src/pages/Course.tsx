@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useCourse } from '../api/queries';
+import { Avatar, CourseArt, subjectOf } from '../components/Art';
 import { Async, Breadcrumb, EmptyState, LectureRow } from '../components/Common';
 import { CourseDialog } from '../components/CourseDialog';
 import { Icon } from '../components/Icon';
@@ -23,7 +24,10 @@ export function CoursePage() {
     <Async query={course}>
       {(c) => (
         <div>
-          <section className="banner" style={{ background: c.color }}>
+          <section className="banner" style={{ background: `linear-gradient(120deg, ${c.color}, color-mix(in srgb, ${c.color} 60%, #000))` }}>
+            <div className="banner-art">
+              <CourseArt subject={subjectOf(c.name)} />
+            </div>
             <div className="container">
               <Breadcrumb items={[{ label: 'Home', to: '/' }, { label: 'Course' }]} />
               <div className="xs" style={{ letterSpacing: '.1em', opacity: 0.85 }}>
@@ -31,6 +35,15 @@ export function CoursePage() {
               </div>
               <h1>{c.name}</h1>
               <p>{c.description || 'Lectures recorded for this course.'}</p>
+              {c.instructor && (
+                <div className="banner-instructor">
+                  <Avatar name={c.instructor} size={44} />
+                  <div>
+                    <b>{c.instructor}</b>
+                    <span>{c.instructor_title}</span>
+                  </div>
+                </div>
+              )}
               <div className="banner-stats">
                 <div>
                   <b>{c.lectures.length}</b>
