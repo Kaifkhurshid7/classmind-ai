@@ -108,17 +108,25 @@ export function Dashboard() {
 
               <div className="section-head">
                 <h2>My courses</h2>
-                <Link to="/library">View all lectures</Link>
+                <div className="row">
+                  <button className="btn btn-outline btn-sm teacher-only" onClick={() => setCreating(true)}>
+                    <Icon name="plus" size={14} />
+                    New course
+                  </button>
+                  <Link to="/library">View all lectures</Link>
+                </div>
               </div>
               {d.courses.length || isTeacher ? (
                 <div className="grid grid-4">
                   {d.courses.map((course) => (
                     <CourseCard key={course.id} course={course} />
                   ))}
-                  <button className="new-card teacher-only" onClick={() => setCreating(true)}>
-                    <Icon name="plus" size={28} />
-                    Create a course
-                  </button>
+                  {d.courses.length % 4 !== 0 && (
+                    <button className="new-card teacher-only" onClick={() => setCreating(true)}>
+                      <Icon name="plus" size={28} />
+                      Create a course
+                    </button>
+                  )}
                 </div>
               ) : (
                 <EmptyState icon="folder" title="No courses yet" text="Your teacher has not published any courses." />
