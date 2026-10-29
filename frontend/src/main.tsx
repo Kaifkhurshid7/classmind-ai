@@ -8,6 +8,8 @@ import { ConfirmProvider } from './components/Modal';
 import { RoleProvider } from './context/RoleContext';
 import { ToastProvider } from './context/ToastContext';
 import './styles/style.css';
+import './styles/footer-pages.css';
+import './styles/analytics.css';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
