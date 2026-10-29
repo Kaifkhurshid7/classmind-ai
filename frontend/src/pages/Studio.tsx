@@ -5,7 +5,8 @@ import { api } from '../api/client';
 import { useCourses } from '../api/queries';
 import type { Notes, Segment } from '../api/types';
 import { Breadcrumb, EmptyState } from '../components/Common';
-import { Icon } from '../components/Icon';
+import { StudioArt } from '../components/Art';
+import { Icon, type IconName } from '../components/Icon';
 import { Modal } from '../components/Modal';
 import { Select } from '../components/Select';
 import { useRole } from '../context/RoleContext';
@@ -76,6 +77,93 @@ function LiveNotes({ notes }: { notes: Notes | null }) {
   );
 }
 
+const STEPS = ['Set up', 'Record', 'Review and publish'];
+
+type Level = 'ok' | 'warn' | 'bad';
+
+/** Live readiness checks: microphone permission and network status. */
+function usePreflight() {
+  const [mic, setMic] = useState<PermissionState | 'unknown'>('unknown');
+  const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
+
+  useEffect(() => {
+    let status: PermissionStatus | undefined;
+    navigator.permissions
+      ?.query({ name: 'microphone' as PermissionName })
+      .then((s) => {
+        status = s;
+        setMic(s.state);
+        s.onchange = () => setMic(s.state);
+      })
+      .catch(() => undefined);
+    const on = () => setOnline(true);
+    const off = () => setOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => {
+      window.removeEventListener('online', on);
+      window.removeEventListener('offline', off);
+      if (status) status.onchange = null;
+    };
+  }, []);
+
+  return { mic, online };
+}
+
+function PreflightCard({ mic, online, language }: { mic: PermissionState | 'unknown'; online: boolean; language: string }) {
+  const items: { level: Level; title: string; text: string }[] = [
+    speechSupported
+      ? { level: 'ok', title: 'Live transcription', text: 'Supported in this browser.' }
+      : { level: 'warn', title: 'Live transcription', text: 'Not supported here. Use Chrome or Edge; audio is still recorded.' },
+    mic === 'granted'
+      ? { level: 'ok', title: 'Microphone', text: 'Access allowed.' }
+      : mic === 'denied'
+        ? { level: 'bad', title: 'Microphone', text: 'Blocked. Allow it from the address bar, then reload.' }
+        : { level: 'warn', title: 'Microphone', text: 'Your browser will ask for permission when you start.' },
+    online ? { level: 'ok', title: 'Internet', text: 'Connected (needed for live transcription).' } : { level: 'bad', title: 'Internet', text: 'Offline. Live transcription needs a connection.' },
+    { level: 'ok', title: 'Language', text: `${language}. Change it above if you speak another language.` },
+  ];
+  const icon: Record<Level, IconName> = { ok: 'checkc', warn: 'alert', bad: 'x' };
+  return (
+    <div className="card side-box">
+      <h3>Pre-flight check</h3>
+      <ul className="preflight">
+        {items.map((it) => (
+          <li key={it.title} className={it.level}>
+            <span>
+              <Icon name={icon[it.level]} size={16} />
+            </span>
+            <div>
+              <b>{it.title}</b>
+              <em>{it.text}</em>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function TipsCard() {
+  const tips = [
+    'Keep the microphone about a hand-span from your mouth.',
+    'Choose a quiet room and close doors and windows.',
+    'Speak at a steady pace and pause between ideas.',
+    'Say key terms clearly; they become concepts and flashcards.',
+    'Say names and formulas out loud once so they are captured.',
+  ];
+  return (
+    <div className="card side-box">
+      <h3>Tips for a great recording</h3>
+      <ol className="tips">
+        {tips.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
 export function Studio() {
   const { isTeacher, setRole } = useRole();
   if (!isTeacher)
@@ -114,6 +202,7 @@ function StudioView() {
   const [liveNotes, setLiveNotes] = useState<Notes | null>(null);
 
   const rec = useRecorder(lang, toast);
+  const pre = usePreflight();
   const getTextRef = useRef(rec.getText);
   getTextRef.current = rec.getText;
   const liveBoxRef = useRef<HTMLDivElement>(null);
@@ -202,143 +291,199 @@ function StudioView() {
 
   const idle = rec.phase === 'idle';
   const stateClass = rec.phase === 'recording' ? ' live' : rec.phase === 'paused' ? ' paused' : '';
+  const step = processing ? 3 : idle ? 1 : 2;
+  const langLabel = LANGUAGES.find(([v]) => v === lang)?.[1] ?? lang;
+  const wordCount = rec.segments.reduce((n, s) => n + s.text.split(/\s+/).filter(Boolean).length, 0);
 
   return (
-    <div className="container page">
-      <Breadcrumb items={[{ label: 'Home', to: '/' }, { label: 'Recording studio' }]} />
-      <h1>Recording studio</h1>
-      <p className="muted mt-8">Record a lecture and ClassMind will transcribe it live, then build notes, a quiz and a tutor for your students.</p>
+    <div>
+      <section className="studio-hero">
+        <div className="container studio-hero-inner">
+          <div>
+            <Breadcrumb items={[{ label: 'Home', to: '/' }, { label: 'Recording studio' }]} />
+            <h1>Recording studio</h1>
+            <p>Record a lecture and ClassMind transcribes it live, then builds notes, a quiz and an AI tutor for your students.</p>
+            <ol className="studio-steps" aria-label="Progress">
+              {STEPS.map((label, i) => (
+                <li key={label} className={step === i + 1 ? 'active' : step > i + 1 ? 'done' : ''}>
+                  <span>{step > i + 1 ? <Icon name="check" size={14} /> : i + 1}</span>
+                  {label}
+                </li>
+              ))}
+            </ol>
+          </div>
+          <div className="studio-hero-art">
+            <StudioArt />
+          </div>
+        </div>
+      </section>
 
-      <div className="studio mt-24">
-        <div>
-          <div className="card rec-panel">
-            <div className="row wrap mb-16">
-              <div className="field grow" style={{ margin: 0, minWidth: 220 }}>
-                <label>Lecture title</label>
-                <input className="input" aria-label="Lecture title" value={title} onChange={(e) => setTitle(e.target.value)} />
+      <div className="container page studio-page">
+        <div className="studio">
+          <div>
+            <div className="card rec-panel">
+              <div className="rec-section-title">
+                <span>1</span>
+                Lecture details
               </div>
-              <div className="field" style={{ margin: 0, minWidth: 180 }}>
-                <label>Course</label>
-                <Select
-                  ariaLabel="Course"
-                  width="100%"
-                  value={courseId}
-                  onChange={setCourseId}
-                  options={[{ value: '', label: 'No course' }, ...(courses.data ?? []).map((c) => ({ value: String(c.id), label: c.name, hint: c.instructor || undefined, color: c.color }))]}
-                />
-              </div>
-              <div className="field" style={{ margin: 0, minWidth: 150 }}>
-                <label>Language</label>
-                <Select
-                  ariaLabel="Speech language"
-                  width="100%"
-                  value={lang}
-                  onChange={(v) => {
-                    setLang(v);
-                    // recognition reads the language from a ref updated on the next render
-                    setTimeout(rec.restartRecognition, 0);
-                  }}
-                  options={LANGUAGES.map(([value, label]) => ({ value, label }))}
-                />
-              </div>
-            </div>
-
-            <div className="rec-top">
-              <div className="timer" aria-live="off">
-                {fmtClock(rec.elapsed)}
-              </div>
-              <span className={'rec-state' + stateClass}>
-                <i />
-                <span>{rec.phase === 'recording' ? 'Recording' : rec.phase === 'paused' ? 'Paused' : 'Ready'}</span>
-              </span>
-              <div className="meter" aria-hidden="true">
-                {BAR_HEIGHTS.map((h, i) => (
-                  <span key={i} className={i < rec.level ? 'on' : ''} style={{ height: h }} />
-                ))}
-              </div>
-            </div>
-
-            <div className="row wrap mt-16">
-              {idle && (
-                <button className="btn btn-record btn-lg" onClick={onStart}>
-                  <Icon name="mic" size={20} />
-                  Start recording
-                </button>
-              )}
-              {!idle && (
-                <>
-                  <button className="btn btn-ghost btn-lg" onClick={rec.pauseResume}>
-                    <Icon name={rec.phase === 'paused' ? 'play' : 'pause'} size={18} />
-                    {rec.phase === 'paused' ? 'Resume' : 'Pause'}
-                  </button>
-                  <button className="btn btn-primary btn-lg" onClick={onStop}>
-                    <Icon name="square" size={16} />
-                    Stop and save
-                  </button>
-                </>
-              )}
-            </div>
-
-            {!speechSupported && (
-              <div className="notice mt-16">
-                <Icon name="alert" size={18} />
-                Live speech-to-text is not supported in this browser. Audio will still be recorded; paste a transcript below, or use Chrome or Edge.
-              </div>
-            )}
-
-            <div className="live-box" aria-live="polite" ref={liveBoxRef}>
-              {rec.segments.length === 0 && idle ? (
-                <div className="empty">
-                  <Icon name="mic" size={34} />
-                  <h3>Your transcript will appear here</h3>
-                  <p className="small">Press Start recording and begin speaking.</p>
+              <div className="row wrap mb-16">
+                <div className="field grow" style={{ margin: 0, minWidth: 220 }}>
+                  <label>Lecture title</label>
+                  <input className="input" aria-label="Lecture title" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </div>
-              ) : rec.segments.length === 0 && !rec.interim ? (
-                <div className="empty" style={{ padding: '90px 20px' }}>
-                  <Icon name="mic" size={34} />
-                  <p>Listening… start speaking.</p>
+                <div className="field" style={{ margin: 0, minWidth: 180 }}>
+                  <label>Course</label>
+                  <Select
+                    ariaLabel="Course"
+                    width="100%"
+                    value={courseId}
+                    onChange={setCourseId}
+                    options={[{ value: '', label: 'No course' }, ...(courses.data ?? []).map((c) => ({ value: String(c.id), label: c.name, hint: c.instructor || undefined, color: c.color }))]}
+                  />
                 </div>
-              ) : (
-                rec.segments.map((s, i) => (
-                  <div className="tr-line" key={i} style={{ gridTemplateColumns: '62px 1fr' }}>
-                    <span className="ts" style={{ cursor: 'default' }}>
-                      {fmtClock(s.t)}
-                    </span>
-                    <div>{s.text}</div>
+                <div className="field" style={{ margin: 0, minWidth: 150 }}>
+                  <label>Language</label>
+                  <Select
+                    ariaLabel="Speech language"
+                    width="100%"
+                    value={lang}
+                    onChange={(v) => {
+                      setLang(v);
+                      // recognition reads the language from a ref updated on the next render
+                      setTimeout(rec.restartRecognition, 0);
+                    }}
+                    options={LANGUAGES.map(([value, label]) => ({ value, label }))}
+                  />
+                </div>
+              </div>
+
+              <div className="rec-section-title">
+                <span>2</span>
+                Record
+              </div>
+              <div className={'rec-console' + (rec.phase === 'recording' ? ' is-live' : '')}>
+                <div className="rec-console-head">
+                  <span className={'rec-state' + stateClass}>
+                    <i />
+                    <span>{rec.phase === 'recording' ? 'Recording' : rec.phase === 'paused' ? 'Paused' : 'Ready'}</span>
+                  </span>
+                  <span className="rec-lang">
+                    <Icon name="globe" size={14} />
+                    {langLabel}
+                  </span>
+                </div>
+                <div className="timer" aria-live="off">
+                  {fmtClock(rec.elapsed)}
+                </div>
+                <div className="meter" aria-hidden="true">
+                  {BAR_HEIGHTS.map((h, i) => (
+                    <span key={i} className={i < rec.level ? 'on' : ''} style={{ height: h }} />
+                  ))}
+                </div>
+
+                <div className="rec-controls">
+                  {idle ? (
+                    <div className="rec-start">
+                      <button className="rec-big" onClick={onStart} aria-label="Start recording">
+                        <Icon name="mic" size={34} />
+                      </button>
+                      <span>Start recording</span>
+                    </div>
+                  ) : (
+                    <>
+                      <button className="rec-round" onClick={rec.pauseResume} aria-label={rec.phase === 'paused' ? 'Resume' : 'Pause'}>
+                        <Icon name={rec.phase === 'paused' ? 'play' : 'pause'} size={22} />
+                        <span>{rec.phase === 'paused' ? 'Resume' : 'Pause'}</span>
+                      </button>
+                      <button className="rec-stop" onClick={onStop}>
+                        <Icon name="square" size={18} />
+                        Stop and save
+                      </button>
+                    </>
+                  )}
+                </div>
+                <p className="rec-hint">
+                  {idle ? 'Press the red button and start teaching. You can pause at any time.' : rec.phase === 'paused' ? 'Paused. Press Resume to continue.' : 'Listening… speak naturally. Notes build up on the right.'}
+                </p>
+              </div>
+
+              {!speechSupported && (
+                <div className="notice mt-16">
+                  <Icon name="alert" size={18} />
+                  Live speech-to-text is not supported in this browser. Audio will still be recorded; paste a transcript below, or use Chrome or Edge.
+                </div>
+              )}
+
+              <div className="live-head">
+                <b>Live transcript</b>
+                <span>
+                  {rec.segments.length} {rec.segments.length === 1 ? 'line' : 'lines'} · {wordCount} words
+                </span>
+              </div>
+              <div className="live-box" aria-live="polite" ref={liveBoxRef}>
+                {rec.segments.length === 0 && idle ? (
+                  <div className="empty">
+                    <Icon name="mic" size={34} />
+                    <h3>Your transcript will appear here</h3>
+                    <p className="small">Press Start recording and begin speaking.</p>
                   </div>
-                ))
-              )}
-              <div className="interim">{rec.interim}</div>
+                ) : rec.segments.length === 0 && !rec.interim ? (
+                  <div className="empty" style={{ padding: '90px 20px' }}>
+                    <Icon name="mic" size={34} />
+                    <p>Listening… start speaking.</p>
+                  </div>
+                ) : (
+                  rec.segments.map((s, i) => (
+                    <div className="tr-line" key={i} style={{ gridTemplateColumns: '62px 1fr' }}>
+                      <span className="ts" style={{ cursor: 'default' }}>
+                        {fmtClock(s.t)}
+                      </span>
+                      <div>{s.text}</div>
+                    </div>
+                  ))
+                )}
+                <div className="interim">{rec.interim}</div>
+              </div>
             </div>
+
+            <details className="card paste-card">
+              <summary>
+                <span className="feature-icon">
+                  <Icon name="upload" size={18} />
+                </span>
+                <span>
+                  <b>No microphone? Paste or upload a transcript instead</b>
+                  <em>Create a lecture from text and get the same notes, quiz and tutor.</em>
+                </span>
+              </summary>
+              <div style={{ padding: '0 20px 20px' }}>
+                <textarea className="input" rows={7} placeholder="Paste or type the lecture text here…" value={pasted} onChange={(e) => setPasted(e.target.value)} />
+                <div className="row wrap mt-16">
+                  <label className="btn btn-ghost" htmlFor="txtfile" style={{ cursor: 'pointer' }}>
+                    <Icon name="upload" size={16} />
+                    Upload .txt file
+                  </label>
+                  <input type="file" accept=".txt,text/plain" className="sr-only" id="txtfile" onChange={(e) => onFile(e.target.files?.[0])} />
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => {
+                      const t = pasted.trim();
+                      saveLecture(t, [], Math.round(t.split(/\s+/).length / 2.6), null);
+                    }}
+                  >
+                    Create lecture from this text
+                  </button>
+                </div>
+              </div>
+            </details>
           </div>
 
-          <details className="card" style={{ marginTop: 20 }}>
-            <summary style={{ padding: '16px 20px', cursor: 'pointer', fontWeight: 700, listStyle: 'none', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Icon name="upload" size={18} />
-              No microphone? Paste or upload a transcript instead
-            </summary>
-            <div style={{ padding: '0 20px 20px' }}>
-              <textarea className="input" rows={7} placeholder="Paste or type the lecture text here…" value={pasted} onChange={(e) => setPasted(e.target.value)} />
-              <div className="row wrap mt-16">
-                <label className="btn btn-ghost" htmlFor="txtfile" style={{ cursor: 'pointer' }}>
-                  <Icon name="upload" size={16} />
-                  Upload .txt file
-                </label>
-                <input type="file" accept=".txt,text/plain" className="sr-only" id="txtfile" onChange={(e) => onFile(e.target.files?.[0])} />
-                <button
-                  className="btn btn-outline"
-                  onClick={() => {
-                    const t = pasted.trim();
-                    saveLecture(t, [], Math.round(t.split(/\s+/).length / 2.6), null);
-                  }}
-                >
-                  Create lecture from this text
-                </button>
-              </div>
-            </div>
-          </details>
+          <aside className="studio-side">
+            <LiveNotes notes={liveNotes} />
+            <PreflightCard mic={pre.mic} online={pre.online} language={langLabel} />
+            <TipsCard />
+          </aside>
         </div>
-        <LiveNotes notes={liveNotes} />
       </div>
 
       {processing && (

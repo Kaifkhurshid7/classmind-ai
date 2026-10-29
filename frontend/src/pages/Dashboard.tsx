@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useOverview } from '../api/queries';
-import { Avatar } from '../components/Art';
+import { Avatar, CourseArt, subjectOf } from '../components/Art';
 import { Async, CourseCard, EmptyState, LectureRow, StatTile, Thumb } from '../components/Common';
 import { CourseDialog } from '../components/CourseDialog';
 import { HeroSection, InsightPanels, QuickActions, Showcase } from '../components/HomeSections';
@@ -36,7 +36,16 @@ export function Dashboard() {
         const c = d.continue;
         const faculty = [...new Set(d.courses.filter((x) => x.instructor).map((x) => x.instructor!))].map((name) => {
           const owned = d.courses.filter((x) => x.instructor === name);
-          return { name, title: owned[0].instructor_title || '', courses: owned };
+          const scores = owned.map((x) => x.avg).filter((v): v is number => v !== null);
+          const [role, ...dept] = (owned[0].instructor_title || '').split(',');
+          return {
+            name,
+            role: role.trim(),
+            dept: dept.join(',').trim(),
+            courses: owned,
+            lectures: owned.reduce((n, x) => n + x.lectures, 0),
+            avg: scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null,
+          };
         });
         return (
           <div>
@@ -121,24 +130,52 @@ export function Dashboard() {
                 <>
                   <div className="section-head">
                     <h2>Meet your faculty</h2>
+                    <span className="muted small">{faculty.length} instructors across {d.courses.length} courses</span>
                   </div>
-                  <div className="grid grid-4 faculty-grid">
-                    {faculty.map((f) => (
-                      <div className="card faculty-card" key={f.name}>
-                        <Avatar name={f.name} size={56} />
-                        <div>
-                          <h3>{f.name}</h3>
-                          <div className="muted small">{f.title}</div>
-                          <div className="faculty-courses">
-                            {f.courses.map((c) => (
-                              <Link key={c.id} to={`/course/${c.id}`} className="badge">
-                                {c.name}
-                              </Link>
-                            ))}
+                  <div className="faculty-grid2">
+                    {faculty.map((f) => {
+                      const first = f.courses[0];
+                      return (
+                        <article className="fcard" key={f.name}>
+                          <div className="fcard-banner" style={{ background: `linear-gradient(135deg, ${first.color}, color-mix(in srgb, ${first.color} 58%, #000))` }}>
+                            <CourseArt subject={subjectOf(first.name)} />
                           </div>
-                        </div>
-                      </div>
-                    ))}
+                          <div className="fcard-avatar">
+                            <Avatar name={f.name} size={92} />
+                          </div>
+                          <div className="fcard-body">
+                            <h3>{f.name}</h3>
+                            <p className="fcard-role">{f.role}</p>
+                            {f.dept && <p className="fcard-dept">{f.dept}</p>}
+                            <div className="fcard-stats">
+                              <div>
+                                <b>{f.courses.length}</b>
+                                <span>{f.courses.length === 1 ? 'Course' : 'Courses'}</span>
+                              </div>
+                              <div>
+                                <b>{f.lectures}</b>
+                                <span>{f.lectures === 1 ? 'Lecture' : 'Lectures'}</span>
+                              </div>
+                              <div>
+                                <b>{f.avg === null ? '–' : f.avg + '%'}</b>
+                                <span>Avg score</span>
+                              </div>
+                            </div>
+                            <div className="faculty-courses">
+                              {f.courses.map((c) => (
+                                <Link key={c.id} to={`/course/${c.id}`} className="badge">
+                                  {c.name}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                          <Link className="fcard-link" to={`/course/${first.id}`}>
+                            View {f.courses.length === 1 ? 'course' : 'courses'}
+                            <Icon name="right" size={15} />
+                          </Link>
+                        </article>
+                      );
+                    })}
                   </div>
                 </>
               )}
