@@ -1,20 +1,21 @@
 """Dashboard overview and teacher analytics."""
+
 import re
 import time
 from collections import Counter
 from datetime import datetime
 
-from flask import Blueprint, jsonify
+from fastapi import APIRouter
 
-from app.database import get_db
+from app.api.deps import DB
+from app.responses import Analytics, Overview
 from app.services.lectures import LECTURE_SELECT, lecture_summary, weak_topics_for
 
-bp = Blueprint("analytics", __name__)
+router = APIRouter(prefix="/api", tags=["analytics"])
 
 
-@bp.get("/api/overview")
-def overview():
-    d = get_db()
+@router.get("/overview", response_model=Overview, response_model_exclude_unset=True)
+def overview(d: DB):
     lectures = d.execute(LECTURE_SELECT + "ORDER BY l.created DESC").fetchall()
     summaries = [lecture_summary(d, r) for r in lectures]
     courses = []
@@ -46,21 +47,19 @@ def overview():
                 break
     if not cont and summaries:
         cont = summaries[0]
-    return jsonify(
-        {
-            "stats": {
-                "lectures": len(summaries),
-                "courses": len(courses),
-                "hours": round(sum(s["duration"] or 0 for s in summaries) / 3600.0, 1),
-                "minutes": round(sum(s["duration"] or 0 for s in summaries) / 60.0),
-                "quizzes": sum(s["attempts"] for s in summaries),
-                "avg": round(sum(all_avgs) / len(all_avgs)) if all_avgs else None,
-            },
-            "courses": courses,
-            "lectures": summaries[:12],
-            "continue": cont,
-        }
-    )
+    return {
+        "stats": {
+            "lectures": len(summaries),
+            "courses": len(courses),
+            "hours": round(sum(s["duration"] or 0 for s in summaries) / 3600.0, 1),
+            "minutes": round(sum(s["duration"] or 0 for s in summaries) / 60.0),
+            "quizzes": sum(s["attempts"] for s in summaries),
+            "avg": round(sum(all_avgs) / len(all_avgs)) if all_avgs else None,
+        },
+        "courses": courses,
+        "lectures": summaries[:12],
+        "continue": cont,
+    }
 
 
 DAY = 86400
@@ -79,15 +78,22 @@ def _avg(values):
     return round(sum(values) / len(values)) if values else None
 
 
-@bp.get("/api/analytics")
-def analytics():
-    d = get_db()
+@router.get("/analytics", response_model=Analytics, response_model_exclude_unset=True)
+def analytics(d: DB):
     now_ts = time.time()
     today = int(now_ts // DAY) * DAY
     lectures = d.execute(LECTURE_SELECT + "ORDER BY l.created DESC").fetchall()
     summaries = [lecture_summary(d, r) for r in lectures]
     per_lecture = [
-        {"id": s["id"], "title": s["title"], "course": s["course_name"], "course_color": s["course_color"], "attempts": s["attempts"], "avg": s["avg"], "best": s["best"]}
+        {
+            "id": s["id"],
+            "title": s["title"],
+            "course": s["course_name"],
+            "course_color": s["course_color"],
+            "attempts": s["attempts"],
+            "avg": s["avg"],
+            "best": s["best"],
+        }
         for s in summaries
     ]
     avgs = [s["avg"] for s in summaries if s["avg"] is not None]
@@ -102,7 +108,9 @@ def analytics():
         if key in seen:
             continue
         seen.add(key)
-        top_questions.append({"question": q["content"], "count": norm[key], "lecture_id": q["lecture_id"], "lecture": q["title"], "created": q["created"]})
+        top_questions.append(
+            {"question": q["content"], "count": norm[key], "lecture_id": q["lecture_id"], "lecture": q["title"], "created": q["created"]}
+        )
     top_questions.sort(key=lambda x: (-x["count"], -x["created"]))
 
     attempts = d.execute(
@@ -125,7 +133,12 @@ def analytics():
     for q in qs:
         bump(q["created"], "questions")
     activity_30 = [
-        {"day": datetime.fromtimestamp(k).strftime("%d %b"), "date": datetime.fromtimestamp(k).strftime("%a %d %b"), **v, "count": sum(v.values())}
+        {
+            "day": datetime.fromtimestamp(k).strftime("%d %b"),
+            "date": datetime.fromtimestamp(k).strftime("%a %d %b"),
+            **v,
+            "count": sum(v.values()),
+        }
         for k, v in sorted(days.items())
     ]
     activity = activity_30[-14:]  # kept for the simple 14-day view
@@ -136,7 +149,10 @@ def analytics():
         key = int(a["created"] // DAY) * DAY
         if key >= start30:
             by_day.setdefault(key, []).append(_pct(a["score"], a["total"]))
-    trend = [{"day": datetime.fromtimestamp(k).strftime("%d %b"), "avg": _avg(by_day.get(k, [])), "attempts": len(by_day.get(k, []))} for k in sorted(days)]
+    trend = [
+        {"day": datetime.fromtimestamp(k).strftime("%d %b"), "avg": _avg(by_day.get(k, [])), "attempts": len(by_day.get(k, []))}
+        for k in sorted(days)
+    ]
 
     # ---- period comparisons for the KPI cards (this week vs the week before) ----
     wk = 7 * DAY
@@ -190,31 +206,35 @@ def analytics():
         events.append({"type": "lecture", "when": r["created"], "text": f"Lecture recorded: {r['title']}", "lecture_id": r["id"]})
     for a in attempts[-12:]:
         events.append(
-            {"type": "quiz", "when": a["created"], "text": f"Quiz scored {_pct(a['score'], a['total'])}% on {a['title']}", "lecture_id": a["lecture_id"], "score": _pct(a["score"], a["total"])}
+            {
+                "type": "quiz",
+                "when": a["created"],
+                "text": f"Quiz scored {_pct(a['score'], a['total'])}% on {a['title']}",
+                "lecture_id": a["lecture_id"],
+                "score": _pct(a["score"], a["total"]),
+            }
         )
     for q in qs[:12]:
         events.append({"type": "question", "when": q["created"], "text": f"Asked the tutor: {q['content']}", "lecture_id": q["lecture_id"]})
     events.sort(key=lambda e: -e["when"])
 
-    return jsonify(
-        {
-            "totals": {
-                "lectures": len(summaries),
-                "minutes": round(sum(s["duration"] or 0 for s in summaries) / 60),
-                "words": sum(s["words"] for s in summaries),
-                "questions": len(qs),
-                "attempts": sum(s["attempts"] for s in summaries),
-                "avg": round(sum(avgs) / len(avgs)) if avgs else None,
-            },
-            "kpis": kpis,
-            "per_lecture": per_lecture,
-            "by_course": by_course,
-            "weak_topics": weak_topics_for(None, 8),
-            "top_questions": top_questions[:8],
-            "activity": activity,
-            "activity_30": activity_30,
-            "trend": trend,
-            "distribution": distribution,
-            "recent": events[:10],
-        }
-    )
+    return {
+        "totals": {
+            "lectures": len(summaries),
+            "minutes": round(sum(s["duration"] or 0 for s in summaries) / 60),
+            "words": sum(s["words"] for s in summaries),
+            "questions": len(qs),
+            "attempts": sum(s["attempts"] for s in summaries),
+            "avg": round(sum(avgs) / len(avgs)) if avgs else None,
+        },
+        "kpis": kpis,
+        "per_lecture": per_lecture,
+        "by_course": by_course,
+        "weak_topics": weak_topics_for(d, None, 8),
+        "top_questions": top_questions[:8],
+        "activity": activity,
+        "activity_30": activity_30,
+        "trend": trend,
+        "distribution": distribution,
+        "recent": events[:10],
+    }
