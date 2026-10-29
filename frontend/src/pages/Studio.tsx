@@ -7,6 +7,7 @@ import type { Notes, Segment } from '../api/types';
 import { Breadcrumb, EmptyState } from '../components/Common';
 import { Icon } from '../components/Icon';
 import { Modal } from '../components/Modal';
+import { Select } from '../components/Select';
 import { useRole } from '../context/RoleContext';
 import { useToast } from '../context/ToastContext';
 import { LEVEL_BARS, speechSupported, useRecorder } from '../hooks/useRecorder';
@@ -218,33 +219,27 @@ function StudioView() {
               </div>
               <div className="field" style={{ margin: 0, minWidth: 180 }}>
                 <label>Course</label>
-                <select className="input" aria-label="Course" value={courseId} onChange={(e) => setCourseId(e.target.value)}>
-                  <option value="">No course</option>
-                  {courses.data?.map((c) => (
-                    <option key={c.id} value={String(c.id)}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  ariaLabel="Course"
+                  width="100%"
+                  value={courseId}
+                  onChange={setCourseId}
+                  options={[{ value: '', label: 'No course' }, ...(courses.data ?? []).map((c) => ({ value: String(c.id), label: c.name, hint: c.instructor || undefined, color: c.color }))]}
+                />
               </div>
               <div className="field" style={{ margin: 0, minWidth: 150 }}>
                 <label>Language</label>
-                <select
-                  className="input"
-                  aria-label="Speech language"
+                <Select
+                  ariaLabel="Speech language"
+                  width="100%"
                   value={lang}
-                  onChange={(e) => {
-                    setLang(e.target.value);
+                  onChange={(v) => {
+                    setLang(v);
                     // recognition reads the language from a ref updated on the next render
                     setTimeout(rec.restartRecognition, 0);
                   }}
-                >
-                  {LANGUAGES.map(([v, l]) => (
-                    <option key={v} value={v}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
+                  options={LANGUAGES.map(([value, label]) => ({ value, label }))}
+                />
               </div>
             </div>
 
