@@ -12,12 +12,14 @@ export const site = {
   privacyEmail: (env.VITE_PRIVACY_EMAIL as string | undefined) || (env.VITE_CONTACT_EMAIL as string | undefined) || 'privacy@classmind.example',
   address: (env.VITE_OPERATOR_ADDRESS as string | undefined) || '',
   governingLaw: (env.VITE_GOVERNING_LAW as string | undefined) || 'India',
-  /** Social profiles; only the ones you set are shown in the footer. */
+  /** Social profiles; defaults to the platform home page until you set your own profile URL. */
   social: {
-    linkedin: (env.VITE_LINKEDIN_URL as string | undefined) || '',
-    youtube: (env.VITE_YOUTUBE_URL as string | undefined) || '',
-    twitter: (env.VITE_TWITTER_URL as string | undefined) || '',
-    github: (env.VITE_GITHUB_URL as string | undefined) || '',
+    linkedin: (env.VITE_LINKEDIN_URL as string | undefined) || 'https://www.linkedin.com',
+    instagram: (env.VITE_INSTAGRAM_URL as string | undefined) || 'https://www.instagram.com',
+    facebook: (env.VITE_FACEBOOK_URL as string | undefined) || 'https://www.facebook.com',
+    twitter: (env.VITE_TWITTER_URL as string | undefined) || 'https://x.com',
+    youtube: (env.VITE_YOUTUBE_URL as string | undefined) || 'https://www.youtube.com',
+    github: (env.VITE_GITHUB_URL as string | undefined) || 'https://github.com',
   },
   /** Dates are shown on the policy pages; bump when the text changes. */
   policyUpdated: '29 October 2026',
