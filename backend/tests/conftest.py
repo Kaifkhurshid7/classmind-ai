@@ -19,8 +19,13 @@ TEXT = (
 def client(tmp_path, monkeypatch):
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)  # tests use the offline engine
 
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<!doctype html><title>ClassMind</title>")
+
     class Cfg(TestConfig):
         DATA_DIR = tmp_path
+        FRONTEND_DIR = dist
 
     return create_app(Cfg()).test_client()
 

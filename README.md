@@ -13,23 +13,28 @@ plan. Everything exports to a cleanly aligned PDF.
 | Backend | Python 3.10+, Flask (app factory + blueprints), SQLite |
 | AI | Anthropic Claude (`anthropic` SDK) with a built-in offline fallback engine |
 | Export | ReportLab (PDF), Markdown / text |
-| Frontend | Vanilla JS + CSS (no build step), Web Speech API and MediaRecorder |
-| Quality | pytest, ruff, GitHub Actions CI |
+| Frontend | React 18, TypeScript, Vite, React Router, TanStack Query; Web Speech API and MediaRecorder |
+| Quality | pytest, ruff, vitest, `tsc`, GitHub Actions CI |
 | Deploy | Docker / docker-compose, gunicorn |
 
 ## Quick start
 
+Requires Python 3.10+ and Node 20+.
+
 ```bash
-make install                      # or: pip install -r backend/requirements-dev.txt
+make install                      # Python + npm dependencies
 cp .env.example .env              # optional: set ANTHROPIC_API_KEY for Claude-powered output
-make run                          # or: cd backend && python wsgi.py
+make run                          # builds the React app, then serves everything on :5000
 ```
 
 Open **http://localhost:5000** in **Chrome or Edge** and allow the microphone.
 Demo courses and lectures are created on first run (set `CLASSMIND_SEED=0` to disable).
 The app works without an API key using the offline engine; with a key, Claude produces much better results.
 
-With Docker: `docker compose up --build`. Tests: `make test`. Lint: `make lint`.
+**Development** (hot reload): run `make dev-backend` and `make dev-frontend` in two terminals, then open
+**http://localhost:5173**. Vite proxies `/api` to Flask.
+
+With Docker: `docker compose up --build`. Tests: `make test`. Lint and type-check: `make lint`.
 
 ## Features
 
@@ -82,7 +87,14 @@ backend/
       pdf_export.py    PDF generation
   tests/               pytest suite
   wsgi.py              Dev server / gunicorn entry point
-frontend/              index.html, css/, js/ (served at /static)
+frontend/              React + TypeScript app (Vite)
+  src/
+    api/               Fetch client, TanStack Query hooks, API types
+    components/        Layout, modals, menu, shared UI
+    context/           Role (teacher/student), toasts
+    hooks/             useRecorder (speech-to-text, audio capture, level meter)
+    pages/             Dashboard, Library, Course, Analytics, Studio, lecture/ (tabs)
+    lib/  styles/
 docs/API.md            API reference
 data/                  Created at runtime (SQLite DB + audio), git-ignored
 ```
