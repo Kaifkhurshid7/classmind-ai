@@ -1,29 +1,24 @@
-"""ClassMind AI backend: Flask application factory."""
+"""ClassMind AI backend: FastAPI application factory."""
 import os
 
-from flask import Flask
+from fastapi import FastAPI
 
 from app import database, seed
-from app.api import register_blueprints
-from app.config import Config
+from app.api import register_routers
+from app.config import Settings
 from app.errors import register_error_handlers
 
 
-def create_app(config: Config | None = None) -> Flask:
-    config = config or Config()
-    app = Flask(
-        __name__,
-        static_folder=str(config.FRONTEND_DIR),
-        static_url_path="/static",
-    )
-    app.config.from_object(config)
+def create_app(config: Settings | None = None) -> FastAPI:
+    config = config or Settings()
+    app = FastAPI(title="ClassMind AI", version="0.3.0", docs_url="/api/docs", redoc_url=None, openapi_url="/api/openapi.json")
+    app.state.config = config
 
-    os.makedirs(app.config["AUDIO_DIR"], exist_ok=True)
-    app.teardown_appcontext(database.close_db)
-    register_error_handlers(app)
-    register_blueprints(app)
+    os.makedirs(config.audio_dir, exist_ok=True)
+    database.init_db(config.db_url)
+    if config.seed_demo:
+        seed.seed_demo(config.db_url)
 
-    database.init_db(app.config["DB_PATH"])
-    if app.config["SEED_DEMO"]:
-        seed.seed_demo(app.config["DB_PATH"])
+    register_routers(app)
+    register_error_handlers(app)  # also mounts /static and the single-page fallback, so it must come last
     return app
