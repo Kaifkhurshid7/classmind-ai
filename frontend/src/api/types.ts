@@ -26,6 +26,8 @@ export interface Course {
   name: string;
   description: string;
   color: string;
+  instructor?: string | null;
+  instructor_title?: string | null;
   created: number;
 }
 export interface CourseCardData {
@@ -33,6 +35,8 @@ export interface CourseCardData {
   name: string;
   description: string;
   color: string;
+  instructor?: string | null;
+  instructor_title?: string | null;
   lectures: number;
   progress: number;
   avg: number | null;
@@ -50,6 +54,8 @@ export interface LectureSummary {
   course_id: number | null;
   course_name: string | null;
   course_color: string | null;
+  instructor?: string | null;
+  instructor_title?: string | null;
   title: string;
   duration: number;
   created: number;
@@ -138,10 +144,33 @@ export interface RevisionPlan {
   weak_topics?: WeakTopic[];
 }
 
+export interface ActivityDay {
+  day: string;
+  date: string;
+  lectures: number;
+  quizzes: number;
+  questions: number;
+  count: number;
+}
 export interface Analytics {
   totals: { lectures: number; minutes: number; words: number; questions: number; attempts: number; avg: number | null };
-  per_lecture: { id: number; title: string; course: string | null; attempts: number; avg: number | null; best: number | null }[];
+  kpis: {
+    attempts_week: number;
+    attempts_change: number | null;
+    questions_week: number;
+    questions_change: number | null;
+    avg_week: number | null;
+    avg_change: number | null;
+    practised_pct: number;
+    practised: number;
+  };
+  per_lecture: { id: number; title: string; course: string | null; course_color: string | null; attempts: number; avg: number | null; best: number | null }[];
+  by_course: { id: number; name: string; color: string; instructor: string | null; lectures: number; attempts: number; questions: number; avg: number | null; practised: number }[];
   weak_topics: WeakTopic[];
   top_questions: { question: string; count: number; lecture_id: number; lecture: string; created: number }[];
   activity: { day: string; count: number }[];
+  activity_30: ActivityDay[];
+  trend: { day: string; avg: number | null; attempts: number }[];
+  distribution: { label: string; count: number }[];
+  recent: { type: 'lecture' | 'quiz' | 'question'; when: number; text: string; lecture_id: number; score?: number }[];
 }
