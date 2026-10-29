@@ -63,8 +63,8 @@ def _recent(rnd, now, floor, days=28):
     return t
 
 
-def seed_demo(db_path, force=False):
-    conn = db.connect(db_path)
+def seed_demo(db_url, force=False):
+    conn = db.connect(db_url)
     try:
         has_data = conn.execute("SELECT COUNT(*) FROM lectures").fetchone()[0] or conn.execute("SELECT COUNT(*) FROM courses").fetchone()[0]
         if has_data and not force:
@@ -129,29 +129,33 @@ def seed_demo(db_path, force=False):
         conn.close()
 
 
-def reset_demo(db_path):
+def reset_demo(db_url):
     """Delete all content and re-create the demo data."""
-    conn = db.connect(db_path)
+    conn = db.connect(db_url)
     try:
-        for table in ("attempts", "chats", "bookmarks", "lectures", "courses"):
-            conn.execute(f"DELETE FROM {table}")
-        conn.execute("DELETE FROM sqlite_sequence")  # restart ids at 1
+        if db_url.startswith("sqlite"):
+            for table in ("attempts", "chats", "bookmarks", "lectures", "courses"):
+                conn.execute(f"DELETE FROM {table}")
+            conn.execute("DELETE FROM sqlite_sequence")  # restart ids at 1
+        else:
+            conn.execute("TRUNCATE attempts, chats, bookmarks, lectures, courses RESTART IDENTITY CASCADE")
         conn.commit()
     finally:
         conn.close()
-    seed_demo(db_path, force=True)
+    seed_demo(db_url, force=True)
 
 
 if __name__ == "__main__":
-    from app.config import Config
+    from app.config import Settings
 
-    cfg = Config()
-    cfg.DATA_DIR.mkdir(parents=True, exist_ok=True)
-    cfg.AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    db.init_db(cfg.DB_PATH)
+    cfg = Settings()
+    cfg.data_dir.mkdir(parents=True, exist_ok=True)
+    cfg.audio_dir.mkdir(parents=True, exist_ok=True)
+    db.init_db(cfg.db_url)
+    where = cfg.db_url.rsplit("@", 1)[-1]  # never print credentials
     if "--reset" in sys.argv:
-        reset_demo(cfg.DB_PATH)
-        print(f"Demo data re-created in {cfg.DB_PATH}")
+        reset_demo(cfg.db_url)
+        print(f"Demo data re-created in {where}")
     else:
-        seed_demo(cfg.DB_PATH)
-        print(f"Seeded {cfg.DB_PATH} (existing data left untouched; use --reset to rebuild)")
+        seed_demo(cfg.db_url)
+        print(f"Seeded {where} (existing data left untouched; use --reset to rebuild)")
