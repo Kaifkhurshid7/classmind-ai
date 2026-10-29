@@ -33,7 +33,7 @@ export function Avatar({ name, size = 36 }: { name: string; size?: number }) {
 /* ------------------------------------------------------------------ */
 /* Subject covers                                                      */
 /* ------------------------------------------------------------------ */
-export type Subject = 'biology' | 'physics' | 'code' | 'history' | 'economics' | 'general';
+export type Subject = 'biology' | 'physics' | 'code' | 'history' | 'economics' | 'chemistry' | 'maths' | 'language' | 'general';
 
 export function subjectOf(name: string | null | undefined): Subject {
   const n = (name || '').toLowerCase();
@@ -42,6 +42,9 @@ export function subjectOf(name: string | null | undefined): Subject {
   if (/python|program|code|computer|software|algorithm/.test(n)) return 'code';
   if (/histor|civics|freedom|politic/.test(n)) return 'history';
   if (/econom|commerce|business|finance/.test(n)) return 'economics';
+  if (/chem|atom|molecul/.test(n)) return 'chemistry';
+  if (/math|algebra|calculus|geometry|statistic/.test(n)) return 'maths';
+  if (/english|communicat|language|writing|literature/.test(n)) return 'language';
   return 'general';
 }
 
@@ -98,6 +101,39 @@ function SubjectGlyph({ subject }: { subject: Subject }) {
           <rect x="86" y="26" width="14" height="62" rx="2" fill="#fff" fillOpacity=".65" />
           <path d="M34 50l28-18 20 6 28-20" />
           <path d="M104 18h10v10" />
+        </g>
+      );
+    case 'chemistry':
+      return (
+        <g {...stroke}>
+          <path d="M62 18h20" />
+          <path d="M65 18v24L42 78q-4 9 5 10h50q9-1 5-10L79 42V18" opacity=".95" />
+          <path d="M50 66h44" opacity=".8" />
+          <circle cx="68" cy="56" r="3.2" fill="#fff" stroke="none" />
+          <circle cx="81" cy="49" r="2.6" fill="#fff" stroke="none" />
+          <circle cx="75" cy="76" r="3.4" fill="#fff" stroke="none" />
+          <circle cx="104" cy="30" r="5" opacity=".7" />
+          <circle cx="112" cy="46" r="3" opacity=".7" />
+        </g>
+      );
+    case 'maths':
+      return (
+        <g {...stroke}>
+          <path d="M34 18v66h78" opacity=".9" />
+          <path d="M42 76L106 26" />
+          <circle cx="58" cy="63" r="4.5" fill="#fff" />
+          <circle cx="90" cy="38" r="4.5" fill="#fff" />
+          <path d="M52 84v-4M72 84v-4M92 84v-4M30 66h4M30 46h4M30 26h4" opacity=".7" />
+          <path d="M92 70h16M100 62v16" opacity=".85" />
+        </g>
+      );
+    case 'language':
+      return (
+        <g {...stroke}>
+          <path d="M34 22h58a8 8 0 0 1 8 8v26a8 8 0 0 1-8 8H66L50 78V64H34a8 8 0 0 1-8-8V30a8 8 0 0 1 8-8z" opacity=".95" />
+          <path d="M40 38h40M40 50h24" opacity=".85" />
+          <rect x="92" y="52" width="30" height="24" rx="7" fill="#fff" fillOpacity=".3" />
+          <path d="M100 62h14M100 69h8" opacity=".9" />
         </g>
       );
     default:
