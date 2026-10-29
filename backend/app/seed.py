@@ -1,87 +1,157 @@
-"""Demo content so the app is not empty on first run (disable with CLASSMIND_SEED=0)."""
+"""Demo content so the app is not empty on first run (disable with CLASSMIND_SEED=0).
+
+Populates courses with faculty details, lectures with realistic transcripts and
+curated notes, plus quiz attempts, tutor conversations and bookmarks spread over
+the last few weeks so the dashboard and analytics have something to show.
+
+    python -m app.seed --reset     # wipe and re-create the demo data
+"""
+import random
+import sys
+import zlib
+from datetime import datetime
+
 from app import database as db
+from app.demo_data import COURSES, LECTURES
 from app.services import ai_engine
 from app.services import quiz as quiz_service
 
-LECTURES = [
-    (
-        "Biology 101",
-        "Foundations of life science: cells, energy and living systems.",
-        "#0056d2",
-        "Photosynthesis: How Plants Make Food",
-        "Photosynthesis is the process by which green plants convert light energy into chemical energy. "
-        "It takes place in the chloroplasts of plant cells. Chlorophyll is the green pigment that absorbs sunlight. "
-        "During photosynthesis plants take in carbon dioxide from the air and water from the soil. "
-        "The light reactions happen in the thylakoid membranes and produce ATP and oxygen. "
-        "The Calvin cycle uses ATP and carbon dioxide to build glucose in the stroma. "
-        "Glucose is stored as starch or used by the plant for energy. "
-        "Oxygen is released into the atmosphere as a by product of photosynthesis. "
-        "Factors such as light intensity, temperature and carbon dioxide concentration affect the rate of photosynthesis. "
-        "Without photosynthesis there would be no oxygen for animals to breathe and no food chain.",
-    ),
-    (
-        "Biology 101",
-        None,
-        None,
-        "The Cell: Structure and Function",
-        "The cell is the basic structural and functional unit of all living organisms. "
-        "The nucleus is the control centre of the cell and contains the genetic material called DNA. "
-        "Mitochondria are the organelles that release energy from food through cellular respiration. "
-        "The cell membrane is a thin layer that controls which substances enter and leave the cell. "
-        "Ribosomes are small structures where proteins are made. "
-        "The endoplasmic reticulum transports proteins and lipids inside the cell. "
-        "Plant cells also have a rigid cell wall and chloroplasts, which animal cells do not have. "
-        "A large central vacuole stores water and nutrients in plant cells. "
-        "All cells come from pre existing cells, and this idea is known as cell theory.",
-    ),
-    (
-        "Physics Basics",
-        "Motion, force and energy explained step by step.",
-        "#0e7c66",
-        "Newton's Laws of Motion",
-        "Newton's first law states that an object stays at rest or moves with constant velocity unless a force acts on it. "
-        "This tendency to resist changes in motion is called inertia. "
-        "Newton's second law says that force equals mass multiplied by acceleration. "
-        "A heavier object needs a larger force to get the same acceleration. "
-        "Newton's third law states that for every action there is an equal and opposite reaction. "
-        "When a rocket pushes gas downward, the gas pushes the rocket upward. "
-        "Friction is a force that opposes the motion between two surfaces in contact. "
-        "Weight is the force of gravity acting on the mass of an object. "
-        "The unit of force is the newton, and one newton accelerates one kilogram at one metre per second squared.",
-    ),
-]
+DAY = 86400
+WORDS_PER_SECOND = 2.0  # about 120 words a minute: a natural lecturing pace with pauses
 
 
 def make_segments(transcript: str):
-    sents = ai_engine.split_sentences(transcript)
+    """Timestamp each sentence by its length, as if spoken at a natural pace."""
     t, segs = 0.0, []
-    for s in sents:
+    for s in ai_engine.split_sentences(transcript):
         segs.append({"t": round(t, 1), "text": s})
-        t += max(2.0, len(s.split()) / 2.6)
+        t += max(2.0, len(s.split()) / WORDS_PER_SECOND)
     return segs, int(t)
 
 
-def seed_demo(db_path):
+def _attempt_details(quiz, rnd, skill, weak_topic):
+    """Simulate a student's answers: weaker on one topic, stronger with more practice."""
+    details, score = [], 0
+    for q in quiz:
+        p = skill - (0.35 if q.get("topic") == weak_topic else 0)
+        correct = rnd.random() < p
+        n = len(q["options"])
+        chosen = q["answer_index"] if correct else rnd.choice([i for i in range(n) if i != q["answer_index"]])
+        score += 1 if correct else 0
+        details.append(
+            {
+                "question": q["question"],
+                "options": q["options"],
+                "topic": q.get("topic", "General"),
+                "chosen": chosen,
+                "answer_index": q["answer_index"],
+                "correct": correct,
+                "explanation": q.get("explanation", ""),
+            }
+        )
+    return details, score
+
+
+def _recent(rnd, now, floor, days=28):
+    """A random moment in the last `days` days (not before `floor`), busier on weekdays."""
+    start = max(floor + 3600, now - days * DAY)
+    t = rnd.uniform(start, now - 600)
+    for _ in range(6):
+        if datetime.fromtimestamp(t).weekday() < 5 or rnd.random() < 0.2:
+            break
+        t = rnd.uniform(start, now - 600)
+    return t
+
+
+def seed_demo(db_path, force=False):
     conn = db.connect(db_path)
     try:
-        if conn.execute("SELECT COUNT(*) FROM lectures").fetchone()[0] or conn.execute("SELECT COUNT(*) FROM courses").fetchone()[0]:
+        has_data = conn.execute("SELECT COUNT(*) FROM lectures").fetchone()[0] or conn.execute("SELECT COUNT(*) FROM courses").fetchone()[0]
+        if has_data and not force:
             return
+        now = db.now()
+
         course_ids = {}
-        for course, desc, color, title, text in LECTURES:
-            if course not in course_ids:
-                cur = conn.execute(
-                    "INSERT INTO courses(name, description, color, created) VALUES (?,?,?,?)",
-                    (course, desc or "", color or "#0056d2", db.now()),
-                )
-                course_ids[course] = cur.lastrowid
-            segs, dur = make_segments(text)
-            notes = ai_engine.local_analyze(text)
-            quiz = quiz_service.generate_quiz(notes, text, use_ai=False)
-            conn.execute(
-                "INSERT INTO lectures(course_id,title,transcript,segments,notes,quiz,duration,lang,created,updated) VALUES (?,?,?,?,?,?,?,?,?,?)",
-                (course_ids[course], title, text, db.jd(segs), db.jd(notes), db.jd(quiz), dur, "en-IN", db.now(), db.now()),
+        for i, c in enumerate(COURSES):
+            cur = conn.execute(
+                "INSERT INTO courses(name,description,color,instructor,instructor_title,created) VALUES (?,?,?,?,?,?)",
+                (c["name"], c["description"], c["color"], c["instructor"], c["instructor_title"], now - 40 * DAY + i),
             )
+            course_ids[c["key"]] = cur.lastrowid
+
+        for lec in LECTURES:
+            rnd = random.Random(zlib.crc32(lec["title"].encode("utf-8")))
+            text = lec["transcript"]
+            segs, duration = make_segments(text)
+            notes = {**lec["notes"], "engine": "demo", "engine_note": "Sample content for demonstration"}
+            quiz = quiz_service.generate_quiz(notes, text, use_ai=False)
+            created = now - lec["days_ago"] * DAY + rnd.uniform(0, 6 * 3600)
+
+            cur = conn.execute(
+                "INSERT INTO lectures(course_id,title,transcript,segments,notes,quiz,duration,lang,created,updated) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (course_ids[lec["course"]], lec["title"], text, db.jd(segs), db.jd(notes), db.jd(quiz), duration, lec["lang"], created, created),
+            )
+            lid = cur.lastrowid
+
+            # Bookmarks: two moments a student would want to revisit
+            substantial = [x for x in segs[3:] if 10 <= len(x["text"].split()) <= 32]
+            for seg in rnd.sample(substantial, k=min(2, len(substantial))):
+                conn.execute(
+                    "INSERT INTO bookmarks(lecture_id,t,text,created) VALUES (?,?,?,?)",
+                    (lid, seg["t"], seg["text"], _recent(rnd, now, created)),
+                )
+
+            # Tutor conversations (answers come from the offline engine, grounded in the transcript).
+            # Some questions are asked again by other students, so "most asked" has real counts.
+            history = []
+            asked = list(lec.get("chat", []))
+            asked += [q for q in lec.get("chat", []) if rnd.random() < 0.55 for _ in range(rnd.randint(1, 3))]
+            for question in asked:
+                when = _recent(rnd, now, created)
+                answer = ai_engine.answer_question(question, text, history, use_ai=False)["answer"]
+                conn.execute("INSERT INTO chats(lecture_id,role,content,created) VALUES (?,?,?,?)", (lid, "user", question, when))
+                conn.execute("INSERT INTO chats(lecture_id,role,content,created) VALUES (?,?,?,?)", (lid, "assistant", answer, when + 4))
+                history = (history + [{"role": "user", "content": question}, {"role": "assistant", "content": answer}])[-6:]
+
+            # Quiz attempts that improve over time, with one weaker topic per lecture
+            topics = sorted({q.get("topic", "General") for q in quiz})
+            weak = rnd.choice(topics) if topics else None
+            attempts = lec.get("attempts", rnd.randint(4, 8))
+            # Earlier attempts score lower; students improve with practice
+            for n, when in enumerate(sorted(_recent(rnd, now, created) for _ in range(attempts))):
+                details, score = _attempt_details(quiz, rnd, min(0.93, 0.55 + 0.07 * n), weak)
+                conn.execute(
+                    "INSERT INTO attempts(lecture_id,score,total,details,created) VALUES (?,?,?,?,?)",
+                    (lid, score, len(quiz), db.jd(details), when),
+                )
         conn.commit()
     finally:
         conn.close()
 
+
+def reset_demo(db_path):
+    """Delete all content and re-create the demo data."""
+    conn = db.connect(db_path)
+    try:
+        for table in ("attempts", "chats", "bookmarks", "lectures", "courses"):
+            conn.execute(f"DELETE FROM {table}")
+        conn.execute("DELETE FROM sqlite_sequence")  # restart ids at 1
+        conn.commit()
+    finally:
+        conn.close()
+    seed_demo(db_path, force=True)
+
+
+if __name__ == "__main__":
+    from app.config import Config
+
+    cfg = Config()
+    cfg.DATA_DIR.mkdir(parents=True, exist_ok=True)
+    cfg.AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    db.init_db(cfg.DB_PATH)
+    if "--reset" in sys.argv:
+        reset_demo(cfg.DB_PATH)
+        print(f"Demo data re-created in {cfg.DB_PATH}")
+    else:
+        seed_demo(cfg.DB_PATH)
+        print(f"Seeded {cfg.DB_PATH} (existing data left untouched; use --reset to rebuild)")
