@@ -1,9 +1,9 @@
 """Lecture/query helpers shared by several API blueprints."""
 from collections import defaultdict
 
-from flask import abort
+from fastapi import HTTPException
 
-from app.database import get_db, jl
+from app.database import jl
 from app.services import ai_engine
 
 LECTURE_SELECT = (
@@ -57,15 +57,15 @@ def lecture_summary(db_, r, snippet_q=None):
     return d
 
 
-def get_lecture_row(lid):
-    r = get_db().execute(LECTURE_SELECT + "WHERE l.id=?", (lid,)).fetchone()
+def get_lecture_row(db_, lid):
+    r = db_.execute(LECTURE_SELECT + "WHERE l.id=?", (lid,)).fetchone()
     if not r:
-        abort(404)
+        raise HTTPException(404, "Not found")
     return r
 
 
-def lecture_full(r):
-    d = lecture_summary(get_db(), r)
+def lecture_full(db_, r):
+    d = lecture_summary(db_, r)
     segs = jl(r["segments"], [])
     d.update(
         {
@@ -77,19 +77,19 @@ def lecture_full(r):
     return d
 
 
-def chat_rows(lid, limit=200):
-    rows = get_db().execute("SELECT id,role,content,created FROM chats WHERE lecture_id=? ORDER BY id LIMIT ?", (lid, limit)).fetchall()
+def chat_rows(db_, lid, limit=200):
+    rows = db_.execute("SELECT id,role,content,created FROM chats WHERE lecture_id=? ORDER BY id LIMIT ?", (lid, limit)).fetchall()
     return [dict(x) for x in rows]
 
 
-def bookmark_rows(lid):
-    rows = get_db().execute("SELECT id,t,text,created FROM bookmarks WHERE lecture_id=? ORDER BY COALESCE(t,0), id", (lid,)).fetchall()
+def bookmark_rows(db_, lid):
+    rows = db_.execute("SELECT id,t,text,created FROM bookmarks WHERE lecture_id=? ORDER BY COALESCE(t,0), id", (lid,)).fetchall()
     return [dict(x) for x in rows]
 
 
-def weak_topics_for(lid=None, limit=8):
+def weak_topics_for(db_, lid=None, limit=8):
     q = "SELECT details FROM attempts" + (" WHERE lecture_id=?" if lid else "")
-    rows = get_db().execute(q, (lid,) if lid else ()).fetchall()
+    rows = db_.execute(q, (lid,) if lid else ()).fetchall()
     agg = defaultdict(lambda: [0, 0])
     for r in rows:
         for d in jl(r["details"], []):

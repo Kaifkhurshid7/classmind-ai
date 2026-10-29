@@ -1,25 +1,20 @@
-"""Frontend entry point, health/status and stateless live analysis."""
-from flask import Blueprint, current_app, jsonify, send_from_directory
+"""Health/status and stateless live analysis."""
+from fastapi import APIRouter
 
-from app.api.utils import body
+from app.responses import StatusOut
+from app.schemas import AnalyzeIn
 from app.services import ai_engine
 
-bp = Blueprint("system", __name__)
+router = APIRouter(prefix="/api", tags=["system"])
 
 
-@bp.get("/")
-def index():
-    return send_from_directory(current_app.config["FRONTEND_DIR"], "index.html")
-
-
-@bp.get("/api/status")
+@router.get("/status", response_model=StatusOut)
 def status():
     ok = ai_engine.ai_available()
-    return jsonify({"ai": ok, "model": ai_engine.MODEL if ok else None})
+    return {"ai": ok, "model": ai_engine.MODEL if ok else None}
 
 
-@bp.post("/api/analyze")
-def analyze_live():
+@router.post("/analyze")
+def analyze_live(data: AnalyzeIn):
     """Stateless analysis used for live notes while recording."""
-    data = body()
-    return jsonify(ai_engine.analyze_lecture(data.get("transcript", ""), use_ai=not data.get("live")))
+    return ai_engine.analyze_lecture(data.transcript, use_ai=not data.live)
