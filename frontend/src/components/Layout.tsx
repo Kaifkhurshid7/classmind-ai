@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useStatus } from '../api/queries';
+import { site } from '../config/site';
 import { useRole } from '../context/RoleContext';
+import { ConsentNotice } from './ConsentNotice';
 import { Icon, LogoMark, type IconName } from './Icon';
 import { Menu } from './Menu';
 import { Modal } from './Modal';
@@ -127,6 +129,7 @@ function Footer() {
             <p className="small" style={{ maxWidth: 320 }}>
               The AI learning layer for every classroom. Turn every lecture into personalised learning.
             </p>
+            <p className="legal-note">AI-generated notes, quizzes and answers can contain mistakes. Please verify important information.</p>
           </div>
           <div>
             <h4>Learn</h4>
@@ -139,21 +142,27 @@ function Footer() {
             <Link to="/analytics" className="teacher-only">Analytics</Link>
           </div>
           <div>
-            <h4>Features</h4>
-            <span className="small" style={{ display: 'block', lineHeight: 1.9 }}>
-              Live transcription
-              <br />
-              Smart notes
-              <br />
-              AI tutor
-              <br />
-              Quizzes &amp; flashcards
-            </span>
+            <h4>Legal</h4>
+            <Link to="/privacy">Privacy Policy</Link>
+            <Link to="/terms">Terms of Service</Link>
+            <Link to="/cookies">Cookie Policy</Link>
+          </div>
+          <div>
+            <h4>Support</h4>
+            <Link to="/contact">Contact &amp; help</Link>
+            <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
           </div>
         </div>
         <div className="copy">
-          <span>© {new Date().getFullYear()} ClassMind AI · Prototype</span>
-          <span>Learn · Understand · Practice · Grow</span>
+          <span>
+            © {new Date().getFullYear()} {site.operator} · Prototype
+          </span>
+          <nav aria-label="Legal">
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+            <Link to="/cookies">Cookies</Link>
+            <Link to="/contact">Contact</Link>
+          </nav>
         </div>
       </div>
     </footer>
@@ -166,11 +175,15 @@ export function Layout() {
   useScrollTop(pathname);
   return (
     <>
+      <a className="skip-link" href="#app">
+        Skip to main content
+      </a>
       <Topbar />
-      <main id="app">
+      <main id="app" tabIndex={-1}>
         <Outlet />
       </main>
       <Footer />
+      <ConsentNotice />
     </>
   );
 }
