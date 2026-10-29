@@ -161,7 +161,8 @@ export function Analytics() {
               <div className="card card-pad">
                 <h3>Course comparison</h3>
                 <p className="small muted">Average quiz score, practice coverage and engagement by course.</p>
-                <table className="tbl">
+                <div className="table-scroll">
+                <table className="tbl course-tbl">
                   <thead>
                     <tr>
                       <th>Course</th>
@@ -196,6 +197,7 @@ export function Analytics() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
               <div className="card card-pad">
                 <h3>Score distribution</h3>
@@ -273,6 +275,7 @@ export function Analytics() {
                 <h3>What students are asking</h3>
                 <p className="small muted">Frequent questions often point to parts of the lecture that were unclear.</p>
                 {a.top_questions.length ? (
+                  <div className="table-scroll">
                   <table className="tbl">
                     <thead>
                       <tr>
@@ -295,6 +298,7 @@ export function Analytics() {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 ) : (
                   <EmptyState icon="message" title="No questions yet" text="Questions asked in the AI tutor show up here." />
                 )}
