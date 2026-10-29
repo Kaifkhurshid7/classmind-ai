@@ -884,21 +884,33 @@ LECTURES = [
 # ---------------------------------------------------------------------------
 def _extend_lectures():
     from app.demo_more_bio import MORE as bio
+    from app.demo_more_extra import MORE as extra
     from app.demo_more_humanities import MORE as humanities
     from app.demo_more_stem import MORE as stem
 
-    extensions = {**bio, **stem, **humanities}
+    extensions = {**bio, **stem, **humanities, **extra}
     for lec in LECTURES:
         ext = extensions.get(lec["title"])
-        if not ext:
+        if not ext or lec.get("_extended"):
             continue
+        lec["_extended"] = True
         text = lec["transcript"]
         cut = text.rfind(ext["cut_at"])
         if cut < 0:
             raise ValueError(f"cut_at not found for {lec['title']!r}")
         lec["transcript"] = text[:cut] + ext["more"] + ext["closing"]
-        for key, items in ext["notes_extra"].items():
+        for key, items in ext.get("notes_extra", {}).items():
             lec["notes"][key] = list(lec["notes"].get(key, [])) + list(items)
 
 
 _extend_lectures()
+
+
+# Three more courses (Chemistry, Mathematics, English) so the dashboard shows a full grid of eight.
+from app.demo_extra_courses import COURSES as _EXTRA_COURSES  # noqa: E402
+from app.demo_extra_courses import LECTURES as _EXTRA_LECTURES  # noqa: E402
+
+COURSES.extend(_EXTRA_COURSES)
+LECTURES.extend(_EXTRA_LECTURES)
+
+_extend_lectures()  # second pass picks up the extra courses (already-extended lectures are skipped)
