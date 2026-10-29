@@ -3,7 +3,11 @@ import os
 
 import uvicorn
 
-from app import create_app
+if os.environ.get("VERCEL"):
+    # Serverless functions have no persistent disk: keep the demo database in /tmp (rebuilt on each cold start)
+    os.environ.setdefault("CLASSMIND_DATA", "/tmp/classmind")
+
+from app import create_app  # noqa: E402
 
 app = create_app()
 

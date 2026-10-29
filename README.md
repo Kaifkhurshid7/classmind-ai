@@ -393,14 +393,17 @@ starts a Postgres container alongside the app.
 
 ### Deploy a demo on Vercel
 
-Vercel runs the React app as static files and the FastAPI backend as one serverless function (`api/index.py`,
-configured in `vercel.json`). It is meant for demos: Vercel has no persistent disk, so the database lives in
-`/tmp` and is rebuilt from the sample data on every cold start. Anything you create is temporary, and audio
-uploads over about 4.5 MB are rejected by the platform (the transcript is still saved).
+`vercel.json` defines two Vercel services: `frontend` (the Vite app, served at `/`) and `backend` (FastAPI, served
+for `/api/*`). The backend receives the original `/api/...` path, so no prefix changes are needed. The frontend
+calls the API from the browser with relative URLs, so no service bindings are used.
 
-1. Push the repository to GitHub, then import it at vercel.com/new. Keep the root directory as the repository root.
+It is meant for demos: Vercel has no persistent disk, so the database lives in `/tmp` and is rebuilt from the
+sample data on every cold start. Anything you create is temporary, and audio uploads over about 4.5 MB are
+rejected by the platform (the transcript is still saved).
+
+1. Push the repository to GitHub, then import it at vercel.com/new with the **Root Directory left as the repository root**.
 2. Optional: add `ANTHROPIC_API_KEY` under Project, Settings, Environment Variables to use Claude.
-3. Deploy. Or from a terminal: `npm i -g vercel && vercel --prod`.
+3. Deploy. Or from a terminal: `npm i -g vercel && vercel --prod`. Locally, `vercel dev` runs both services.
 
 For real use, deploy the Docker image (or the backend with PostgreSQL and file storage) and point Vercel at it.
 

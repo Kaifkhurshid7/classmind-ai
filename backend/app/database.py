@@ -15,6 +15,8 @@ from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
+from app.models import Base
+
 MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations"
 
 
@@ -115,6 +117,10 @@ def connect(url: str) -> Db:
 def init_db(url: str) -> None:
     """Create or upgrade the schema with Alembic."""
     engine = get_engine(url)
+    if not (MIGRATIONS / "env.py").is_file():
+        # Slim deployments (for example serverless bundles) may ship without the migration files
+        Base.metadata.create_all(engine)
+        return
     cfg = AlembicConfig()
     cfg.set_main_option("script_location", str(MIGRATIONS))
     cfg.set_main_option("sqlalchemy.url", url.replace("%", "%%"))
