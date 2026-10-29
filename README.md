@@ -391,6 +391,19 @@ alembic upgrade head                                       # also runs on startu
 To use PostgreSQL, set `DATABASE_URL` (see `.env.example`). With Docker, `docker compose --profile postgres up --build`
 starts a Postgres container alongside the app.
 
+### Deploy a demo on Vercel
+
+Vercel runs the React app as static files and the FastAPI backend as one serverless function (`api/index.py`,
+configured in `vercel.json`). It is meant for demos: Vercel has no persistent disk, so the database lives in
+`/tmp` and is rebuilt from the sample data on every cold start. Anything you create is temporary, and audio
+uploads over about 4.5 MB are rejected by the platform (the transcript is still saved).
+
+1. Push the repository to GitHub, then import it at vercel.com/new. Keep the root directory as the repository root.
+2. Optional: add `ANTHROPIC_API_KEY` under Project, Settings, Environment Variables to use Claude.
+3. Deploy. Or from a terminal: `npm i -g vercel && vercel --prod`.
+
+For real use, deploy the Docker image (or the backend with PostgreSQL and file storage) and point Vercel at it.
+
 ### Docker
 
 ```bash

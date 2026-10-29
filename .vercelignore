@@ -1,0 +1,11 @@
+data/
+docs/
+.github/
+.git/
+frontend/node_modules/
+frontend/dist/
+backend/tests/
+backend/.pytest_cache/
+backend/.ruff_cache/
+**/__pycache__/
+*.db
