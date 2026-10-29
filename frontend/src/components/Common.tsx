@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
 import type { CourseCardData, LectureSummary } from '../api/types';
 import { fmtDate, fmtDur, plural } from '../lib/format';
+import { Avatar, CourseArt, subjectOf } from './Art';
 import { Icon, type IconName } from './Icon';
 
 export function Thumb({ color, title, icon = 'book' }: { color?: string | null; title?: string | null; icon?: IconName }) {
+  const base = color || '#0056d2';
   return (
-    <div className="thumb" style={{ background: color || '#0056d2' }}>
-      <Icon name={icon} size={22} className="corner" />
+    <div className="thumb" style={{ background: `linear-gradient(135deg, ${base}, color-mix(in srgb, ${base} 62%, #000))` }}>
+      <CourseArt subject={subjectOf(title)} />
+      <Icon name={icon} size={20} className="corner" />
       <span>{title || ''}</span>
     </div>
   );
@@ -58,6 +61,12 @@ export function LectureRow({ lecture: l, query }: { lecture: LectureSummary; que
         <h3>{l.title}</h3>
         <div className="meta-row">
           <span>{l.course_name || 'No course'}</span>
+          {l.instructor && (
+            <span>
+              <Icon name="user" size={14} />
+              {l.instructor}
+            </span>
+          )}
           <span>
             <Icon name="clock" size={14} />
             {fmtDur(l.duration)}
@@ -91,6 +100,12 @@ export function CourseCard({ course: c }: { course: CourseCardData }) {
       <Thumb color={c.color} title={c.name} icon="book" />
       <div className="body">
         <h3>{c.name}</h3>
+        {c.instructor && (
+          <div className="by">
+            <Avatar name={c.instructor} size={22} />
+            <span>{c.instructor}</span>
+          </div>
+        )}
         <div className="meta">{plural(c.lectures, 'lecture') + (c.avg !== null ? ` · Quiz average ${c.avg}%` : '')}</div>
         <div className="foot">
           <div className="progress">

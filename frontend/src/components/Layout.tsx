@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useStatus } from '../api/queries';
-import { site } from '../config/site';
 import { useRole } from '../context/RoleContext';
 import { ConsentNotice } from './ConsentNotice';
+import { Footer } from './Footer';
 import { Icon, LogoMark, type IconName } from './Icon';
 import { Menu } from './Menu';
 import { Modal } from './Modal';
@@ -114,65 +114,9 @@ function Topbar() {
   );
 }
 
-function Footer() {
-  return (
-    <footer className="footer">
-      <div className="container">
-        <div className="footer-grid">
-          <div>
-            <div className="brand">
-              <LogoMark />
-              <span>
-                ClassMind <b>AI</b>
-              </span>
-            </div>
-            <p className="small" style={{ maxWidth: 320 }}>
-              The AI learning layer for every classroom. Turn every lecture into personalised learning.
-            </p>
-            <p className="legal-note">AI-generated notes, quizzes and answers can contain mistakes. Please verify important information.</p>
-          </div>
-          <div>
-            <h4>Learn</h4>
-            <Link to="/">My learning</Link>
-            <Link to="/library">Lecture library</Link>
-          </div>
-          <div>
-            <h4>Teach</h4>
-            <Link to="/record" className="teacher-only">Recording studio</Link>
-            <Link to="/analytics" className="teacher-only">Analytics</Link>
-          </div>
-          <div>
-            <h4>Legal</h4>
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Service</Link>
-            <Link to="/cookies">Cookie Policy</Link>
-          </div>
-          <div>
-            <h4>Support</h4>
-            <Link to="/contact">Contact &amp; help</Link>
-            <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
-          </div>
-        </div>
-        <div className="copy">
-          <span>
-            © {new Date().getFullYear()} {site.operator} · Prototype
-          </span>
-          <nav aria-label="Legal">
-            <Link to="/privacy">Privacy</Link>
-            <Link to="/terms">Terms</Link>
-            <Link to="/cookies">Cookies</Link>
-            <Link to="/contact">Contact</Link>
-          </nav>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 export function Layout() {
-  const { pathname } = useLocation();
-  // Scroll to top on navigation (the old hash router did the same)
-  useScrollTop(pathname);
+  const { pathname, hash } = useLocation();
+  useScrollTop(pathname, hash);
   return (
     <>
       <a className="skip-link" href="#app">
@@ -188,8 +132,14 @@ export function Layout() {
   );
 }
 
-function useScrollTop(key: string) {
+/** Scroll to the top on navigation, or to the #section when the link has one. */
+function useScrollTop(pathname: string, hash: string) {
   useEffect(() => {
+    if (hash) {
+      // wait a moment so the target page has rendered
+      const t = setTimeout(() => document.getElementById(hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+      return () => clearTimeout(t);
+    }
     window.scrollTo(0, 0);
-  }, [key]);
+  }, [pathname, hash]);
 }
