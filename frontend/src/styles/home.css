@@ -73,8 +73,6 @@
 .lecture-row .thumb span { display: none; }
 .lecture-row .thumb .thumb-art { width: 100%; height: 100%; right: 0; top: 0; }
 .lecture-row .thumb svg.corner { display: none; }
-.faculty-grid .faculty-card { flex-direction: column; gap: 12px; }
-@media (max-width: 1000px) { .faculty-grid .faculty-card { flex-direction: row; gap: 16px; } }
 
 /* the hero collapses to one column on tablets and phones (must come after the two-column rule above) */
 @media (max-width: 980px) {

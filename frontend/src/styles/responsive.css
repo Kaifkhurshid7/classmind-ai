@@ -60,7 +60,6 @@ body { overflow-x: hidden; }
   .lecture-row .thumb svg.corner { display: none; }
   .lecture-row h3 { font-size: 16px; }
   .lecture-row .snippet { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .faculty-card { padding: 16px; }
   .steps { grid-template-columns: 1fr; }
   .step { border-right: 0; border-bottom: 1px solid var(--line-2); padding: 20px; }
   .step:last-child { border-bottom: 0; }
@@ -93,7 +92,6 @@ body { overflow-x: hidden; }
 
   /* recording studio: every field full width */
   .rec-panel .row.wrap .field { flex: 1 1 100%; min-width: 0 !important; }
-  .rec-top { flex-wrap: wrap; gap: 12px; }
   .timer { font-size: 38px; }
   .rec-panel .row.wrap .btn-lg { flex: 1 1 100%; }
   .live-box { min-height: 220px; }
@@ -156,7 +154,7 @@ body { overflow-x: hidden; }
 /* touch devices: larger tap targets and no sticky hover lift */
 @media (hover: none) {
   .icon-btn { min-width: 40px; min-height: 40px; }
-  .course-card:hover, .faculty-card:hover, .btn-primary:hover:not(:disabled) { transform: none; }
+  .course-card:hover, .btn-primary:hover:not(:disabled) { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

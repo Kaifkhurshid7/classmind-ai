@@ -57,7 +57,7 @@ svg { flex-shrink: 0; }
 .row.wrap { flex-wrap: wrap; }
 .spread { justify-content: space-between; }
 .grow { flex: 1; min-width: 0; }
-.mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; } .mt-32 { margin-top: 32px; }
+.mt-8 { margin-top: 8px; } .mt-16 { margin-top: 16px; } .mt-24 { margin-top: 24px; }
 .mb-8 { margin-bottom: 8px; } .mb-16 { margin-bottom: 16px; } .mb-24 { margin-bottom: 24px; }
 body.role-student .teacher-only { display: none !important; }
 
@@ -120,7 +120,6 @@ body.role-student .teacher-only { display: none !important; }
 .btn-danger:hover:not(:disabled) { background: var(--danger-tint); }
 .btn-record { background: var(--danger); color: #fff; }
 .btn-record:hover:not(:disabled) { background: #a81f26; }
-.btn-dark { background: var(--dark); color: #fff; }
 .btn-sm { height: 34px; padding: 0 14px; font-size: 14px; border-radius: 6px; }
 .btn-lg { height: 52px; padding: 0 30px; font-size: 16px; }
 .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: 0; background: transparent; color: var(--muted); display: inline-grid; place-items: center; cursor: pointer; }
@@ -133,7 +132,6 @@ body.role-student .teacher-only { display: none !important; }
 .page { padding-top: 32px; padding-bottom: 72px; min-height: 70vh; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .card-pad { padding: 24px; }
-.card-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
 .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 40px 0 16px; }
 .section-head:first-child { margin-top: 0; }
 .section-head h2 { font-size: 22px; }
@@ -340,7 +338,6 @@ details.qa .ans { padding: 14px 18px; color: var(--ink-2); }
 .studio { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; align-items: start; }
 @media (max-width: 1000px) { .studio { grid-template-columns: 1fr; } }
 .rec-panel { padding: 24px; }
-.rec-top { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
 .timer { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; min-width: 140px; }
 .rec-state { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; padding: 4px 12px; border-radius: 14px; background: #eef1f5; color: var(--muted); }
 .rec-state i { width: 9px; height: 9px; border-radius: 50%; background: #aab3c0; }
@@ -373,8 +370,6 @@ details.qa .ans { padding: 14px 18px; color: var(--ink-2); }
 .spark { display: flex; align-items: flex-end; gap: 6px; height: 120px; padding-top: 8px; }
 .spark div { flex: 1; background: var(--brand-tint-2); border-radius: 3px 3px 0 0; min-height: 3px; position: relative; }
 .spark div.hi { background: var(--brand); }
-.spark-lbl { display: flex; gap: 6px; font-size: 11px; color: var(--muted); margin-top: 6px; }
-.spark-lbl span { flex: 1; text-align: center; overflow: hidden; }
 table.tbl { width: 100%; border-collapse: collapse; font-size: 15px; }
 table.tbl th { text-align: left; font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 10px 12px; border-bottom: 1px solid var(--line); }
 table.tbl td { padding: 12px; border-bottom: 1px solid var(--line-2); vertical-align: top; }
@@ -426,7 +421,6 @@ table.tbl td { padding: 12px; border-bottom: 1px solid var(--line-2); vertical-a
 /* ---- footer extras ---- */
 .footer .copy nav { display: flex; gap: 18px; flex-wrap: wrap; }
 .footer .copy a { display: inline; margin: 0; font-size: 14px; }
-.footer .legal-note { font-size: 13px; color: #9aa0a8; margin: 14px 0 0; max-width: 420px; }
 
 /* ---- legal / info pages ---- */
 .legal { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; align-items: start; }
@@ -482,7 +476,7 @@ h1, h2, h3, h4 { letter-spacing: -0.015em; }
 
 /* cards */
 .card { box-shadow: var(--shadow-sm); border-color: #e3e9f2; }
-.course-card:hover, .faculty-card:hover { box-shadow: var(--shadow-lg); }
+.course-card:hover { box-shadow: var(--shadow-lg); }
 
 /* section headings get a small accent */
 .section-head { margin: 52px 0 18px; }
@@ -523,10 +517,6 @@ h1, h2, h3, h4 { letter-spacing: -0.015em; }
 .lecture-row { padding: 18px 20px; }
 
 /* faculty */
-.avatar-initials { display: inline-grid; place-items: center; border-radius: 50%; color: #fff; font-weight: 800; flex-shrink: 0; letter-spacing: .02em; box-shadow: 0 0 0 3px rgba(255, 255, 255, .85), 0 2px 6px rgba(15, 23, 42, .18); }
-.faculty-card { display: flex; gap: 16px; padding: 20px; align-items: flex-start; transition: box-shadow .15s, transform .15s; }
-.faculty-card:hover { transform: translateY(-2px); }
-.faculty-card h3 { font-size: 17px; margin-bottom: 2px; }
 .faculty-courses { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .faculty-courses a.badge:hover { text-decoration: none; background: #d2e3ff; }
 .banner-instructor { display: flex; align-items: center; gap: 12px; margin-top: 18px; padding: 10px 16px 10px 10px; width: fit-content; max-width: 100%; background: rgba(255, 255, 255, .16); border: 1px solid rgba(255, 255, 255, .28); border-radius: 40px; backdrop-filter: blur(4px); }
@@ -535,7 +525,6 @@ h1, h2, h3, h4 { letter-spacing: -0.015em; }
 .lecture-instructor { display: flex; align-items: center; gap: 10px; margin: 10px 0 2px; }
 .lecture-instructor b { display: block; font-size: 15px; line-height: 1.2; }
 .lecture-instructor em { display: block; font-style: normal; color: var(--muted); font-size: 13px; }
-.lecture-instructor .avatar-initials { box-shadow: 0 0 0 2px #fff, 0 1px 4px rgba(15, 23, 42, .2); }
 
 /* banner gets depth */
 .banner { padding: 44px 0 40px; }
