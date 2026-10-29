@@ -11,6 +11,7 @@ import './styles/style.css';
 import './styles/footer-pages.css';
 import './styles/analytics.css';
 import './styles/home.css';
+import './styles/about.css';
 import './styles/select.css';
 import './styles/responsive.css';
 
