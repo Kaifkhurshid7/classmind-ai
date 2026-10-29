@@ -7,7 +7,8 @@ from app.database import get_db, jl
 from app.services import ai_engine
 
 LECTURE_SELECT = (
-    "SELECT l.*, c.name AS course_name, c.color AS course_color "
+    "SELECT l.*, c.name AS course_name, c.color AS course_color, "
+    "c.instructor AS instructor, c.instructor_title AS instructor_title "
     "FROM lectures l LEFT JOIN courses c ON c.id = l.course_id "
 )
 
@@ -34,6 +35,8 @@ def lecture_summary(db_, r, snippet_q=None):
         "course_id": r["course_id"],
         "course_name": r["course_name"] if "course_name" in r.keys() else None,
         "course_color": r["course_color"] if "course_color" in r.keys() else None,
+        "instructor": (r["instructor"] if "instructor" in r.keys() else None) or None,
+        "instructor_title": (r["instructor_title"] if "instructor_title" in r.keys() else None) or None,
         "title": r["title"],
         "duration": r["duration"],
         "created": r["created"],

@@ -6,8 +6,10 @@ import { CoursePage } from './pages/Course';
 import { Dashboard } from './pages/Dashboard';
 import { Library } from './pages/Library';
 import { LecturePage } from './pages/lecture/LecturePage';
+import { About } from './pages/legal/About';
 import { Contact } from './pages/legal/Contact';
 import { Cookies } from './pages/legal/Cookies';
+import { Help } from './pages/legal/Help';
 import { Privacy } from './pages/legal/Privacy';
 import { Terms } from './pages/legal/Terms';
 import { Studio } from './pages/Studio';
@@ -40,6 +42,8 @@ export default function App() {
         <Route path="lecture/:id" element={<LecturePage />} />
         <Route path="record" element={<Studio />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="about" element={<About />} />
+        <Route path="help" element={<Help />} />
         <Route path="privacy" element={<Privacy />} />
         <Route path="terms" element={<Terms />} />
         <Route path="cookies" element={<Cookies />} />
