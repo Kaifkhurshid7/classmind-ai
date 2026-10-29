@@ -4,6 +4,8 @@ import { Breadcrumb } from '../../components/Common';
 import { site } from '../../config/site';
 
 const LINKS = [
+  ['/about', 'About ClassMind'],
+  ['/help', 'Help center'],
   ['/privacy', 'Privacy Policy'],
   ['/terms', 'Terms of Service'],
   ['/cookies', 'Cookie & Storage Policy'],
@@ -31,7 +33,7 @@ export function LegalPage({ title, dated = true, children }: Props) {
       <Breadcrumb items={[{ label: 'Home', to: '/' }, { label: title }]} />
       <div className="legal mt-24">
         <nav className="legal-nav" aria-label="Legal and support">
-          <h4>Legal &amp; support</h4>
+          <h4>Company &amp; legal</h4>
           {LINKS.map(([to, label]) => (
             <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'active' : '')}>
               {label}
