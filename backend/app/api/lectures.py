@@ -2,10 +2,13 @@
 import os
 from datetime import datetime
 
-from flask import Blueprint, abort, current_app, jsonify, request, send_file
+from fastapi import APIRouter, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
 
-from app.api.utils import body
-from app.database import get_db, jd, jl, now
+from app.api.deps import DB
+from app.database import jd, jl, now
+from app.responses import AnalyzeOut, Created, LectureDetail, LectureSummary, Ok
+from app.schemas import LectureIn, LectureUpdateIn, ReanalyzeIn
 from app.services import ai_engine
 from app.services import quiz as quiz_service
 from app.services.lectures import (
@@ -18,59 +21,54 @@ from app.services.lectures import (
     weak_topics_for,
 )
 
-bp = Blueprint("lectures", __name__)
+router = APIRouter(prefix="/api/lectures", tags=["lectures"])
+
+AUDIO_TYPES = {"webm": "audio/webm", "ogg": "audio/ogg", "m4a": "audio/mp4", "wav": "audio/wav"}
 
 
-@bp.get("/api/lectures")
-def list_lectures():
-    q = (request.args.get("q") or "").strip()
-    course = request.args.get("course")
+@router.get("", response_model=list[LectureSummary], response_model_exclude_unset=True)
+def list_lectures(d: DB, q: str = "", course: str | None = None):
+    q = q.strip()
     sql, args, where = LECTURE_SELECT, [], []
     if q:
-        where.append("(l.title LIKE ? OR l.transcript LIKE ? OR l.notes LIKE ?)")
-        args += [f"%{q}%"] * 3
+        where.append("(lower(l.title) LIKE ? OR lower(l.transcript) LIKE ? OR lower(l.notes) LIKE ?)")  # lower(): same on SQLite and Postgres
+        args += [f"%{q.lower()}%"] * 3
     if course:
         where.append("l.course_id = ?" if course != "none" else "l.course_id IS NULL")
         if course != "none":
-            args.append(int(course))
+            try:
+                args.append(int(course))
+            except ValueError:
+                raise HTTPException(400, "Invalid course") from None
     if where:
         sql += "WHERE " + " AND ".join(where) + " "
     sql += "ORDER BY l.created DESC"
-    d = get_db()
-    return jsonify([lecture_summary(d, r, q or None) for r in d.execute(sql, args).fetchall()])
+    return [lecture_summary(d, r, q or None) for r in d.execute(sql, args).fetchall()]
 
 
-@bp.post("/api/lectures")
-def create_lecture():
-    data = body()
-    transcript = (data.get("transcript") or "").strip()
+@router.post("", status_code=201, response_model=Created)
+def create_lecture(body: LectureIn, d: DB):
+    transcript = (body.transcript or "").strip()
     if not transcript:
-        abort(400, "Transcript is empty")
+        raise HTTPException(400, "Transcript is empty")
     segments = [
-        {"t": s.get("t"), "text": str(s.get("text", ""))}
-        for s in (data.get("segments") or [])
-        if isinstance(s, dict) and s.get("text")
+        {"t": s.get("t"), "text": str(s.get("text", ""))} for s in (body.segments or []) if isinstance(s, dict) and s.get("text")
     ]
-    title = (data.get("title") or "").strip() or "Untitled lecture " + datetime.now().strftime("%d %b %Y")
-    course_id = data.get("course_id") or None
-    d = get_db()
+    title = (body.title or "").strip() or "Untitled lecture " + datetime.now().strftime("%d %b %Y")
     cur = d.execute(
         "INSERT INTO lectures(course_id,title,transcript,segments,duration,lang,created,updated) VALUES (?,?,?,?,?,?,?,?)",
-        (course_id, title[:200], transcript, jd(segments), int(data.get("duration") or 0), data.get("lang") or "en-IN", now(), now()),
+        (body.course_id or None, title[:200], transcript, jd(segments), int(body.duration or 0), body.lang or "en-IN", now(), now()),
     )
     lid = cur.lastrowid
     # quick offline notes immediately, so the lecture is never empty even if AI is slow
-    notes = ai_engine.local_analyze(transcript)
-    d.execute("UPDATE lectures SET notes=? WHERE id=?", (jd(notes), lid))
+    d.execute("UPDATE lectures SET notes=? WHERE id=?", (jd(ai_engine.local_analyze(transcript)), lid))
     d.commit()
-    return jsonify({"id": lid}), 201
+    return {"id": lid}
 
 
-@bp.get("/api/lectures/<int:lid>")
-def get_lecture(lid):
-    r = get_lecture_row(lid)
-    lec = lecture_full(r)
-    d = get_db()
+@router.get("/{lid}", response_model=LectureDetail, response_model_exclude_unset=True)
+def get_lecture(lid: int, d: DB):
+    r = get_lecture_row(d, lid)
     siblings = []
     if r["course_id"]:
         sib = d.execute(LECTURE_SELECT + "WHERE l.course_id=? ORDER BY l.created", (r["course_id"],)).fetchall()
@@ -79,73 +77,66 @@ def get_lecture(lid):
         {"id": a["id"], "score": a["score"], "total": a["total"], "created": a["created"]}
         for a in d.execute("SELECT * FROM attempts WHERE lecture_id=? ORDER BY id DESC LIMIT 10", (lid,)).fetchall()
     ]
-    quiz = jl(r["quiz"], [])
-    return jsonify(
-        {
-            "lecture": lec,
-            "bookmarks": bookmark_rows(lid),
-            "chat": chat_rows(lid),
-            "attempts": attempts,
-            "siblings": siblings,
-            "quiz_size": len(quiz),
-            "weak_topics": weak_topics_for(lid, 5),
-        }
-    )
+    return {
+        "lecture": lecture_full(d, r),
+        "bookmarks": bookmark_rows(d, lid),
+        "chat": chat_rows(d, lid),
+        "attempts": attempts,
+        "siblings": siblings,
+        "quiz_size": len(jl(r["quiz"], [])),
+        "weak_topics": weak_topics_for(d, lid, 5),
+    }
 
 
-@bp.put("/api/lectures/<int:lid>")
-def update_lecture(lid):
-    r = get_lecture_row(lid)
-    data = body()
-    d = get_db()
+@router.put("/{lid}", response_model=Ok)
+def update_lecture(lid: int, body: LectureUpdateIn, d: DB):
+    r = get_lecture_row(d, lid)
+    data = body.model_dump(exclude_unset=True)
     title = (data.get("title") or r["title"]).strip()[:200] or r["title"]
     course_id = data["course_id"] if "course_id" in data else r["course_id"]
     notes = data["notes"] if isinstance(data.get("notes"), dict) else jl(r["notes"], {})
     transcript, segments = r["transcript"], r["segments"]
-    if isinstance(data.get("transcript"), str) and data["transcript"].strip() and data["transcript"].strip() != (r["transcript"] or "").strip():
-        transcript, segments = data["transcript"].strip(), "[]"
+    new_text = (data.get("transcript") or "").strip()
+    if new_text and new_text != (r["transcript"] or "").strip():
+        transcript, segments = new_text, "[]"
     d.execute(
         "UPDATE lectures SET title=?, course_id=?, notes=?, transcript=?, segments=?, updated=? WHERE id=?",
         (title, course_id, jd(notes), transcript, segments, now(), lid),
     )
     d.commit()
-    return jsonify({"ok": True})
+    return {"ok": True}
 
 
-@bp.delete("/api/lectures/<int:lid>")
-def delete_lecture(lid):
-    r = get_lecture_row(lid)
+@router.delete("/{lid}", response_model=Ok)
+def delete_lecture(lid: int, d: DB, request: Request):
+    r = get_lecture_row(d, lid)
     if r["audio"]:
         try:
-            os.remove(os.path.join(current_app.config["AUDIO_DIR"], r["audio"]))
+            os.remove(request.app.state.config.audio_dir / r["audio"])
         except OSError:
             pass
-    d = get_db()
     d.execute("DELETE FROM lectures WHERE id=?", (lid,))
     d.commit()
-    return jsonify({"ok": True})
+    return {"ok": True}
 
 
-@bp.post("/api/lectures/<int:lid>/analyze")
-def analyze_lecture(lid):
-    r = get_lecture_row(lid)
-    data = body()
-    notes = ai_engine.analyze_lecture(r["transcript"], use_ai=not data.get("offline"))
-    quiz = quiz_service.generate_quiz(notes, r["transcript"], use_ai=not data.get("offline"))
-    d = get_db()
+@router.post("/{lid}/analyze", response_model=AnalyzeOut)
+def analyze_lecture(lid: int, d: DB, body: ReanalyzeIn | None = None):
+    r = get_lecture_row(d, lid)
+    use_ai = not (body and body.offline)
+    notes = ai_engine.analyze_lecture(r["transcript"], use_ai=use_ai)
+    quiz = quiz_service.generate_quiz(notes, r["transcript"], use_ai=use_ai)
     d.execute("UPDATE lectures SET notes=?, quiz=?, updated=? WHERE id=?", (jd(notes), jd(quiz), now(), lid))
     d.commit()
-    return jsonify({"notes": notes, "quiz_size": len(quiz)})
+    return {"notes": notes, "quiz_size": len(quiz)}
 
 
-@bp.post("/api/lectures/<int:lid>/audio")
-def upload_audio(lid):
-    get_lecture_row(lid)
-    f = request.files.get("audio")
-    if not f:
-        abort(400, "No audio file")
+@router.post("/{lid}/audio", response_model=Ok)
+def upload_audio(lid: int, audio: UploadFile, d: DB, request: Request):
+    get_lecture_row(d, lid)
+    cfg = request.app.state.config
+    ct = (audio.content_type or "").lower()
     ext = "webm"
-    ct = (f.mimetype or "").lower()
     if "ogg" in ct:
         ext = "ogg"
     elif "mp4" in ct or "m4a" in ct or "aac" in ct:
@@ -153,21 +144,26 @@ def upload_audio(lid):
     elif "wav" in ct:
         ext = "wav"
     name = f"{lid}.{ext}"
-    f.save(os.path.join(current_app.config["AUDIO_DIR"], name))
-    d = get_db()
+    path = cfg.audio_dir / name
+    size = 0
+    with open(path, "wb") as out:
+        while chunk := audio.file.read(1024 * 1024):
+            size += len(chunk)
+            if size > cfg.max_upload_bytes:
+                out.close()
+                os.remove(path)
+                raise HTTPException(413, "Upload too large")
+            out.write(chunk)
     d.execute("UPDATE lectures SET audio=? WHERE id=?", (name, lid))
     d.commit()
-    return jsonify({"ok": True})
+    return {"ok": True}
 
 
-@bp.get("/api/lectures/<int:lid>/audio")
-def get_audio(lid):
-    r = get_lecture_row(lid)
-    if not r["audio"]:
-        abort(404)
-    path = os.path.join(current_app.config["AUDIO_DIR"], r["audio"])
-    if not os.path.exists(path):
-        abort(404)
-    ext = r["audio"].rsplit(".", 1)[-1]
-    mt = {"webm": "audio/webm", "ogg": "audio/ogg", "m4a": "audio/mp4", "wav": "audio/wav"}.get(ext, "application/octet-stream")
-    return send_file(path, mimetype=mt, conditional=True)
+@router.get("/{lid}/audio")
+def get_audio(lid: int, d: DB, request: Request):
+    r = get_lecture_row(d, lid)
+    path = request.app.state.config.audio_dir / (r["audio"] or "x")
+    if not r["audio"] or not path.exists():
+        raise HTTPException(404, "Not found")
+    # FileResponse handles Range requests, so the browser can seek inside the recording
+    return FileResponse(path, media_type=AUDIO_TYPES.get(r["audio"].rsplit(".", 1)[-1], "application/octet-stream"))

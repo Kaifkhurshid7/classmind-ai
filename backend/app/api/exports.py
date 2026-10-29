@@ -1,29 +1,31 @@
 """Lecture export to PDF, Markdown and plain text."""
-import io
 import re
 
-from flask import Blueprint, abort, request, send_file
+from fastapi import APIRouter, HTTPException, Response
 
+from app.api.deps import DB
 from app.services import exporters
 from app.services.lectures import bookmark_rows, chat_rows, get_lecture_row, lecture_full
 from app.services.pdf_export import build_pdf
 
-bp = Blueprint("exports", __name__)
+router = APIRouter(prefix="/api/lectures", tags=["exports"])
 
 
-@bp.get("/api/lectures/<int:lid>/export")
-def export(lid):
-    r = get_lecture_row(lid)
-    fmt = request.args.get("format", "pdf")
-    mode = request.args.get("mode", "full")
+def _download(content: bytes, media_type: str, filename: str) -> Response:
+    return Response(content, media_type=media_type, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+@router.get("/{lid}/export")
+def export(lid: int, d: DB, format: str = "pdf", mode: str = "full"):
+    r = get_lecture_row(d, lid)
     if mode not in ("notes", "transcript", "full"):
         mode = "full"
-    lec = lecture_full(r)
-    chat = chat_rows(lid)
-    marks = bookmark_rows(lid)
+    lec = lecture_full(d, r)
+    chat = chat_rows(d, lid)
+    marks = bookmark_rows(d, lid)
     safe = re.sub(r"[^A-Za-z0-9_-]+", "_", r["title"])[:40].strip("_") or "lecture"
     base = f"ClassMind_{safe}_{mode}"
-    if fmt == "pdf":
+    if format == "pdf":
         data = build_pdf(
             lec["notes"],
             lec["transcript"],
@@ -33,14 +35,9 @@ def export(lid):
             segments=lec["segments"],
             bookmarks=marks,
         )
-        return send_file(io.BytesIO(data), mimetype="application/pdf", as_attachment=True, download_name=base + ".pdf")
-    if fmt in ("md", "txt"):
-        fn = exporters.to_markdown if fmt == "md" else exporters.to_text
+        return _download(data, "application/pdf", base + ".pdf")
+    if format in ("md", "txt"):
+        fn = exporters.to_markdown if format == "md" else exporters.to_text
         text = fn(lec, mode, chat, marks)
-        return send_file(
-            io.BytesIO(text.encode("utf-8")),
-            mimetype="text/markdown" if fmt == "md" else "text/plain",
-            as_attachment=True,
-            download_name=f"{base}.{fmt}",
-        )
-    abort(400, "Unknown format")
+        return _download(text.encode("utf-8"), "text/markdown" if format == "md" else "text/plain", f"{base}.{format}")
+    raise HTTPException(400, "Unknown format")
