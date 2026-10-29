@@ -92,6 +92,8 @@ export function Analytics() {
         const k = a.kpis;
         const attempted = a.per_lecture.filter((x) => x.avg !== null);
         const distTotal = a.distribution.reduce((s, d) => s + d.count, 0);
+        // a topic needs a few answers before its accuracy means anything
+        const topics = a.weak_topics.filter((w) => w.total >= 3);
         return (
           <div className="container page">
             <Breadcrumb items={[{ label: 'Home', to: '/' }, { label: 'Analytics' }]} />
@@ -218,10 +220,10 @@ export function Analytics() {
                 {distTotal > 0 && (
                   <div className="insight">
                     <b>{Math.round((a.distribution[3].count * 100) / distTotal)}%</b> of attempts score 80% or higher, while <b>{Math.round((a.distribution[0].count * 100) / distTotal)}%</b> score below 40%.
-                    {a.weak_topics[0] && (
+                    {topics[0] && (
                       <>
                         {' '}
-                        The topic most worth revisiting in class is <b>{a.weak_topics[0].topic}</b> ({Math.round(a.weak_topics[0].accuracy * 100)}% correct).
+                        The topic most worth revisiting in class is <b>{topics[0].topic}</b> ({Math.round(topics[0].accuracy * 100)}% correct).
                       </>
                     )}
                   </div>
@@ -252,8 +254,8 @@ export function Analytics() {
               <div className="card card-pad">
                 <h3>Learning gaps</h3>
                 <p className="small muted">Topics students answer incorrectly most often. Lowest accuracy first.</p>
-                {a.weak_topics.length ? (
-                  a.weak_topics.map((w) => (
+                {topics.length ? (
+                  topics.map((w) => (
                     <div className="bar-row" key={w.topic}>
                       <span className="lbl" title={w.topic}>
                         {w.topic}

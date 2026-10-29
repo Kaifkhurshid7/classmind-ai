@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useOverview, useStatus } from '../api/queries';
 import { site } from '../config/site';
@@ -5,6 +6,8 @@ import { useRole } from '../context/RoleContext';
 import { Icon, LogoMark, type IconName } from './Icon';
 
 const SOCIAL: { key: keyof typeof site.social; label: string; icon: IconName }[] = [
+  { key: 'instagram', label: 'Instagram', icon: 'instagram' },
+  { key: 'facebook', label: 'Facebook', icon: 'facebook' },
   { key: 'linkedin', label: 'LinkedIn', icon: 'linkedin' },
   { key: 'youtube', label: 'YouTube', icon: 'youtube' },
   { key: 'twitter', label: 'X (Twitter)', icon: 'twitter' },
@@ -19,10 +22,17 @@ const TRUST: { icon: IconName; title: string; text: string }[] = [
 ];
 
 function Column({ title, children }: { title: string; children: React.ReactNode }) {
+  // Collapsible on phones only; the CSS keeps every column open on wider screens.
+  const [open, setOpen] = useState(false);
   return (
-    <nav className="footer-col" aria-label={title}>
-      <h4>{title}</h4>
-      {children}
+    <nav className={'footer-col' + (open ? ' open' : '')} aria-label={title}>
+      <h4>
+        <button type="button" className="footer-col-toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+          {title}
+          <span className="footer-col-sign" aria-hidden="true" />
+        </button>
+      </h4>
+      <div className="footer-col-links">{children}</div>
     </nav>
   );
 }
@@ -69,7 +79,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="footer-grid">
+        <div className="footer-top-row">
           <div className="footer-brand">
             <div className="brand">
               <LogoMark />
@@ -78,11 +88,13 @@ export function Footer() {
               </span>
             </div>
             <p className="small">The AI learning layer for every classroom. Turn every lecture into personalised learning.</p>
+            {site.address && <p className="footer-address">{site.address}</p>}
+          </div>
+          <div className="footer-reach">
             <a className="footer-contact" href={`mailto:${site.contactEmail}`}>
               <Icon name="mail" size={16} />
               {site.contactEmail}
             </a>
-            {site.address && <p className="footer-address">{site.address}</p>}
             {socials.length > 0 && (
               <div className="footer-social">
                 {socials.map((s) => (
@@ -93,6 +105,9 @@ export function Footer() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="footer-grid">
 
           <Column title="Product">
             <Link to="/about#features">Live transcription</Link>
@@ -127,12 +142,6 @@ export function Footer() {
             <Link to="/help">Help center</Link>
             <Link to="/contact">Contact us</Link>
           </Column>
-
-          <Column title="Legal">
-            <Link to="/privacy">Privacy Policy</Link>
-            <Link to="/terms">Terms of Service</Link>
-            <Link to="/cookies">Cookie Policy</Link>
-          </Column>
         </div>
 
         <p className="footer-disclaimer">
@@ -144,6 +153,11 @@ export function Footer() {
             © {new Date().getFullYear()} {site.operator}. All rights reserved. Prototype v0.2
           </span>
           <div className="footer-meta">
+            <nav className="footer-legal" aria-label="Legal">
+              <Link to="/privacy">Privacy Policy</Link>
+              <Link to="/terms">Terms of Service</Link>
+              <Link to="/cookies">Cookie Policy</Link>
+            </nav>
             <span className={'footer-status' + (status?.ai ? ' ai' : '')} title={status?.ai ? 'Claude is generating notes, quizzes and answers' : 'Using the built-in offline engine'}>
               <i />
               {status?.ai ? 'Claude AI active' : 'Offline engine'}
