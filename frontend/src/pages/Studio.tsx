@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useCourses } from '../api/queries';
@@ -22,7 +22,14 @@ const LANGUAGES: [string, string][] = [
   ['or-IN', 'Odia'],
 ];
 
-const BAR_HEIGHTS = Array.from({ length: LEVEL_BARS }, (_, i) => 8 + ((i * 7) % 5) * 5);
+/** 60 bars around the record button; delay, speed and height vary so the ring looks organic. */
+const RING = Array.from({ length: 60 }, (_, i) => ({
+  i,
+  angle: (i * 360) / 60,
+  delay: ((i * 37) % 11) * 0.06,
+  dur: 0.55 + ((i * 17) % 7) * 0.09,
+  scale: 0.55 + ((i * 13) % 9) * 0.07,
+}));
 
 function LiveNotes({ notes }: { notes: Notes | null }) {
   if (!notes)
@@ -294,6 +301,8 @@ function StudioView() {
   const step = processing ? 3 : idle ? 1 : 2;
   const langLabel = LANGUAGES.find(([v]) => v === lang)?.[1] ?? lang;
   const wordCount = rec.segments.reduce((n, s) => n + s.text.split(/\s+/).filter(Boolean).length, 0);
+  // speaking pace: only meaningful after a little speech has been captured
+  const pace = wordCount >= 8 && rec.elapsed >= 10 ? Math.round(wordCount / (rec.elapsed / 60)) : null;
 
   return (
     <div>
@@ -361,50 +370,67 @@ function StudioView() {
                 <span>2</span>
                 Record
               </div>
-              <div className={'rec-console' + (rec.phase === 'recording' ? ' is-live' : '')}>
-                <div className="rec-console-head">
+              <div className={'rec-stage ' + rec.phase}>
+                <div className="rec-stage-head">
                   <span className={'rec-state' + stateClass}>
                     <i />
-                    <span>{rec.phase === 'recording' ? 'Recording' : rec.phase === 'paused' ? 'Paused' : 'Ready'}</span>
+                    <span>{rec.phase === 'recording' ? 'Recording' : rec.phase === 'paused' ? 'Paused' : 'Ready to record'}</span>
                   </span>
                   <span className="rec-lang">
                     <Icon name="globe" size={14} />
                     {langLabel}
                   </span>
                 </div>
+
+                <div className="rec-ring" style={{ ['--lvl' as string]: Math.min(1, rec.level / LEVEL_BARS) } as CSSProperties} aria-hidden={idle ? undefined : true}>
+                  {RING.map((b) => (
+                    <i key={b.i} style={{ ['--a' as string]: `${b.angle}deg`, ['--d' as string]: `${b.delay}s`, ['--dur' as string]: `${b.dur}s`, ['--s' as string]: b.scale } as CSSProperties}>
+                      <b />
+                    </i>
+                  ))}
+                  <button
+                    className="rec-core"
+                    onClick={idle ? onStart : rec.pauseResume}
+                    aria-label={idle ? 'Start recording' : rec.phase === 'paused' ? 'Resume recording' : 'Pause recording'}
+                  >
+                    <Icon name={idle ? 'mic' : rec.phase === 'paused' ? 'play' : 'pause'} size={44} />
+                  </button>
+                </div>
+
                 <div className="timer" aria-live="off">
                   {fmtClock(rec.elapsed)}
                 </div>
-                <div className="meter" aria-hidden="true">
-                  {BAR_HEIGHTS.map((h, i) => (
-                    <span key={i} className={i < rec.level ? 'on' : ''} style={{ height: h }} />
-                  ))}
-                </div>
-
-                <div className="rec-controls">
-                  {idle ? (
-                    <div className="rec-start">
-                      <button className="rec-big" onClick={onStart} aria-label="Start recording">
-                        <Icon name="mic" size={34} />
-                      </button>
-                      <span>Start recording</span>
-                    </div>
-                  ) : (
-                    <>
-                      <button className="rec-round" onClick={rec.pauseResume} aria-label={rec.phase === 'paused' ? 'Resume' : 'Pause'}>
-                        <Icon name={rec.phase === 'paused' ? 'play' : 'pause'} size={22} />
-                        <span>{rec.phase === 'paused' ? 'Resume' : 'Pause'}</span>
-                      </button>
-                      <button className="rec-stop" onClick={onStop}>
-                        <Icon name="square" size={18} />
-                        Stop and save
-                      </button>
-                    </>
-                  )}
-                </div>
                 <p className="rec-hint">
-                  {idle ? 'Press the red button and start teaching. You can pause at any time.' : rec.phase === 'paused' ? 'Paused. Press Resume to continue.' : 'Listening… speak naturally. Notes build up on the right.'}
+                  {idle ? 'Tap the microphone to start. You can pause at any time.' : rec.phase === 'paused' ? 'Paused. Tap the button or Resume to continue.' : 'Listening… speak naturally. Notes build up on the right.'}
                 </p>
+
+                {idle ? null : (
+                  <div className="rec-actions">
+                    <button className="rec-pill" onClick={rec.pauseResume}>
+                      <Icon name={rec.phase === 'paused' ? 'play' : 'pause'} size={17} />
+                      {rec.phase === 'paused' ? 'Resume' : 'Pause'}
+                    </button>
+                    <button className="rec-pill primary" onClick={onStop}>
+                      <Icon name="square" size={15} />
+                      Stop and save
+                    </button>
+                  </div>
+                )}
+
+                <div className="rec-mini">
+                  <div>
+                    <b>{rec.segments.length}</b>
+                    <span>Lines</span>
+                  </div>
+                  <div>
+                    <b>{wordCount}</b>
+                    <span>Words</span>
+                  </div>
+                  <div>
+                    <b>{pace === null ? '–' : pace}</b>
+                    <span>Words per minute</span>
+                  </div>
+                </div>
               </div>
 
               {!speechSupported && (

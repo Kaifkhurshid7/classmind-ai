@@ -58,9 +58,11 @@ export function LectureRow({ lecture: l, query }: { lecture: LectureSummary; que
     <Link className="lecture-row" to={`/lecture/${l.id}`}>
       <Thumb color={l.course_color || '#4a5568'} title={l.course_name || 'Lecture'} icon="play" />
       <div className="grow">
+        <span className="lecture-course" style={{ color: l.course_color || undefined }}>
+          {l.course_name || 'No course'}
+        </span>
         <h3>{l.title}</h3>
         <div className="meta-row">
-          <span>{l.course_name || 'No course'}</span>
           {l.instructor && (
             <span>
               <Icon name="user" size={14} />
@@ -89,6 +91,9 @@ export function LectureRow({ lecture: l, query }: { lecture: LectureSummary; que
       </div>
       <div className="end">
         {l.best !== null ? <span className={'badge ' + (l.best >= 70 ? 'green' : 'amber')}>Quiz {l.best}%</span> : <span className="badge grey">Not attempted</span>}
+        <span className="lecture-go" aria-hidden="true">
+          <Icon name="right" size={16} />
+        </span>
       </div>
     </Link>
   );
