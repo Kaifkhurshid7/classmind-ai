@@ -1,9 +1,10 @@
 import io
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app import create_app
-from app.config import TestConfig
+from app.config import Settings
 
 TEXT = (
     "Photosynthesis is the process by which green plants convert light energy into chemical energy. "
@@ -23,16 +24,12 @@ def client(tmp_path, monkeypatch):
     dist.mkdir()
     (dist / "index.html").write_text("<!doctype html><title>ClassMind</title>")
 
-    class Cfg(TestConfig):
-        DATA_DIR = tmp_path
-        FRONTEND_DIR = dist
-
-    return create_app(Cfg()).test_client()
+    return TestClient(create_app(Settings(data_dir=tmp_path, frontend_dir=dist, seed_demo=True)))
 
 
 @pytest.fixture()
 def course(client):
-    return client.post("/api/courses", json={"name": "Chemistry 101", "description": "Atoms"}).get_json()["id"]
+    return client.post("/api/courses", json={"name": "Chemistry 101", "description": "Atoms"}).json()["id"]
 
 
 @pytest.fixture()
@@ -45,9 +42,9 @@ def lecture(client, course):
         "/api/lectures",
         json={"title": "Test lecture", "course_id": course, "transcript": TEXT, "segments": segs, "duration": 95},
     )
-    return r.get_json()["id"]
+    return r.json()["id"]
 
 
 @pytest.fixture()
 def audio_file():
-    return {"audio": (io.BytesIO(b"RIFFfakeaudio" * 50), "a.webm", "audio/webm")}
+    return {"audio": ("a.webm", io.BytesIO(b"RIFFfakeaudio" * 50), "audio/webm")}

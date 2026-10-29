@@ -9,5 +9,23 @@ services:
     volumes:
       - classmind-data:/data
 
+  # Optional PostgreSQL for multi-user deployments:
+  #   docker compose --profile postgres up --build
+  # and set DATABASE_URL=postgresql://classmind:classmind@postgres:5432/classmind in .env
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: classmind
+      POSTGRES_PASSWORD: classmind
+      POSTGRES_DB: classmind
+    volumes:
+      - classmind-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U classmind"]
+      interval: 5s
+      retries: 10
+
 volumes:
   classmind-data:
+  classmind-pg:

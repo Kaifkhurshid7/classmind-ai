@@ -6,7 +6,7 @@ RUN npm ci
 COPY frontend/ .
 RUN npm run build
 
-# ---- Stage 2: Flask API serving the built frontend ----
+# ---- Stage 2: FastAPI serving the built frontend ----
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 \
@@ -27,5 +27,7 @@ USER app
 VOLUME /data
 EXPOSE 5000
 
-# SQLite + threads: a single worker with several threads keeps writes safe
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "8", "--timeout", "120", "wsgi:app"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/status', timeout=4)"
+
+# gunicorn supervises uvicorn workers; see backend/gunicorn.conf.py (1 worker on SQLite, more on PostgreSQL)
+CMD ["gunicorn", "asgi:app"]

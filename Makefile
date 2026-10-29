@@ -4,16 +4,16 @@ install:
 	pip install -r backend/requirements-dev.txt
 	cd frontend && npm install
 
-# Production-style: build the React app, Flask serves it on :5000
+# Production-style: build the React app, FastAPI serves it on :5000
 build:
 	cd frontend && npm run build
 
 run: build
-	cd backend && python wsgi.py
+	cd backend && python asgi.py
 
-# Development: run both (two terminals). UI on :5173 proxies /api to Flask on :5000
+# Development: run both (two terminals). UI on :5173 proxies /api to FastAPI on :5000
 dev-backend:
-	cd backend && FLASK_DEBUG=1 python wsgi.py
+	cd backend && RELOAD=1 python asgi.py
 
 dev-frontend:
 	cd frontend && npm run dev

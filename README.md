@@ -8,7 +8,7 @@
 Turn every lecture into personalised learning.
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)
-![Flask](https://img.shields.io/badge/Flask-3-000000?logo=flask&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
@@ -91,7 +91,7 @@ It works **with or without an API key**: a built-in offline engine produces note
 
 ### System architecture
 
-The browser does the speech recognition and audio capture. The Flask API stores everything in SQLite and
+The browser does the speech recognition and audio capture. The FastAPI backend stores everything in SQLite and
 delegates text work to the services layer, which uses Claude when available and an offline engine otherwise.
 
 ```mermaid
@@ -104,8 +104,8 @@ flowchart LR
         UI --- MR
     end
 
-    subgraph Server["Flask backend"]
-        API["REST API<br/>6 blueprints"]
+    subgraph Server["FastAPI backend"]
+        API["REST API<br/>6 routers"]
         SVC["Services<br/>AI engine, quiz, export, PDF"]
         API --> SVC
     end
@@ -132,7 +132,7 @@ sequenceDiagram
     autonumber
     actor T as Teacher
     participant B as Browser
-    participant A as Flask API
+    participant A as FastAPI
     participant E as AI engine
     participant D as SQLite
     actor S as Student
@@ -214,7 +214,7 @@ flowchart TD
 
 ### Data model
 
-SQLite with foreign keys. Notes, quiz questions and transcript segments are stored as JSON text on the
+SQLite (or PostgreSQL) with foreign keys. Notes, quiz questions and transcript segments are stored as JSON text on the
 lecture row. Deleting a lecture removes its chats, attempts and bookmarks; deleting a course keeps its lectures.
 
 ```mermaid
@@ -278,7 +278,7 @@ The HTTP layer stays thin; business logic lives in services, and storage details
 ```mermaid
 flowchart LR
     FE["React frontend"] -->|"JSON over HTTP"| API
-    API["<b>app/api</b><br/>one blueprint per area:<br/>system, courses, lectures,<br/>learning, analytics, exports"]
+    API["<b>app/api</b><br/>one router per area:<br/>system, courses, lectures,<br/>learning, analytics, exports"]
     SVC["<b>app/services</b><br/>no HTTP concerns:<br/>ai_engine, quiz, lectures,<br/>exporters, pdf_export"]
     DBM["<b>database.py</b><br/>schema, migration,<br/>connection helpers"]
     STORE[("SQLite database<br/>and audio files")]
@@ -295,18 +295,18 @@ flowchart LR
 
 ### Development vs production
 
-In development, Vite serves the UI with hot reload and proxies API calls. In production, Flask serves the
+In development, Vite serves the UI with hot reload and proxies API calls. In production, FastAPI serves the
 built UI and the API from one process.
 
 ```mermaid
 flowchart LR
     subgraph Dev["Development: two terminals"]
         B1["Browser<br/>localhost:5173"] --> V["Vite dev server<br/>hot reload"]
-        V -->|"/api/* proxy"| F1["Flask :5000<br/>debug reloader"]
+        V -->|"/api/* proxy"| F1["uvicorn :5000<br/>auto-reload"]
     end
 
     subgraph Prod["Production: one process"]
-        B2["Browser<br/>localhost:5000"] --> F2["gunicorn + Flask"]
+        B2["Browser<br/>localhost:5000"] --> F2["uvicorn + FastAPI"]
         F2 -->|"/api/*"| API2["REST API"]
         F2 -->|"/static/* and any other route"| DIST[["frontend/dist<br/>built React app"]]
     end
@@ -333,7 +333,7 @@ flowchart LR
 
     J1 --> Docker
     J2 --> Docker
-    S2 --> Run["gunicorn<br/>1 worker, 8 threads<br/>non-root user"]
+    S2 --> Run["uvicorn<br/>1 worker<br/>non-root user"]
     Run --> Vol[("Volume /data<br/>SQLite and audio")]
 ```
 
@@ -341,14 +341,15 @@ flowchart LR
 
 | Layer | Choice |
 |---|---|
-| Backend | Python 3.10+, Flask 3 (app factory and blueprints), SQLite (`sqlite3`, no ORM) |
+| Backend | Python 3.10+, FastAPI (app factory, routers, Pydantic request and response models), pydantic-settings |
+| Database | SQLAlchemy 2 with Alembic migrations. SQLite by default, PostgreSQL via `DATABASE_URL` |
 | AI | Anthropic Claude via the `anthropic` SDK, with a built-in offline fallback engine |
 | Export | ReportLab (PDF), Markdown and plain text |
 | Frontend | React 18, TypeScript, Vite 5, React Router 6, TanStack Query 5 |
 | Browser APIs | Web Speech API (speech-to-text), MediaRecorder (audio), localStorage (preferences) |
 | UI | Hand-written CSS, inline SVG icons, charts and artwork (no UI library, no external images) |
 | Quality | pytest, ruff, vitest, `tsc`, GitHub Actions |
-| Deploy | Docker multi-stage build, docker-compose, gunicorn |
+| Deploy | Docker multi-stage build, docker-compose (optional Postgres), gunicorn with uvicorn workers |
 
 ## Quick start
 
@@ -369,12 +370,26 @@ created on the first run, so the app is never empty.
 ### Development with hot reload
 
 ```bash
-make dev-backend              # terminal 1: Flask API on :5000
+make dev-backend              # terminal 1: FastAPI on :5000
 make dev-frontend             # terminal 2: Vite on :5173 (open this one)
 ```
 
-The UI runs on **http://localhost:5173** and proxies `/api` to Flask. If you see proxy errors such as
+The UI runs on **http://localhost:5173** and proxies `/api` to the backend. If you see proxy errors such as
 `ECONNREFUSED`, the backend is not running.
+
+### Database and migrations
+
+The schema lives in `backend/app/models.py` and is applied automatically on startup with Alembic. An existing
+SQLite database from an earlier version is upgraded in place and keeps its data.
+
+```bash
+cd backend
+alembic revision --autogenerate -m "describe the change"   # after editing models.py
+alembic upgrade head                                       # also runs on startup
+```
+
+To use PostgreSQL, set `DATABASE_URL` (see `.env.example`). With Docker, `docker compose --profile postgres up --build`
+starts a Postgres container alongside the app.
 
 ### Docker
 
@@ -387,7 +402,7 @@ docker compose up --build     # http://localhost:5000, data kept in the classmin
 | Command | What it does |
 |---|---|
 | `make install` | Install Python and npm dependencies |
-| `make run` | Build the frontend and serve everything from Flask on port 5000 |
+| `make run` | Build the frontend and serve everything from FastAPI on port 5000, with interactive API docs at `/api/docs` |
 | `make dev-backend` / `make dev-frontend` | Run the two development servers |
 | `make reseed` | **Delete all data** and reload the sample content |
 | `make test` | Run backend (pytest) and frontend (vitest) tests |
@@ -395,7 +410,7 @@ docker compose up --build     # http://localhost:5000, data kept in the classmin
 | `make docker` | Build and start the Docker container |
 
 > On Windows without `make`, run the underlying commands from the [Makefile](Makefile) directly, for example
-> `cd backend && python wsgi.py`.
+> `cd backend && python asgi.py`.
 
 ## Configuration
 
@@ -405,11 +420,13 @@ docker compose up --build     # http://localhost:5000, data kept in the classmin
 |---|---|---|
 | `ANTHROPIC_API_KEY` | _empty_ | Enables Claude for notes, quizzes, tutor answers and revision plans. Without it the offline engine is used. |
 | `CLASSMIND_MODEL` | `claude-sonnet-5-5` | Claude model used when a key is set |
+| `DATABASE_URL` | _empty_ | Empty uses SQLite in `CLASSMIND_DATA`. For PostgreSQL: `postgresql://user:password@host:5432/classmind` |
 | `CLASSMIND_DATA` | `./data` | Folder for the SQLite database and recorded audio |
+| `WEB_CONCURRENCY` | auto | Production worker processes: 1 on SQLite, up to 4 on PostgreSQL |
 | `CLASSMIND_SEED` | `1` | Create demo data on first run. Set `0` to start empty. |
-| `CLASSMIND_FRONTEND` | `frontend/dist` | Folder of the built frontend that Flask serves |
-| `PORT` | `5000` | Port for `python wsgi.py` |
-| `FLASK_DEBUG` | _unset_ | `1` enables Flask's debug reloader (used by `make dev-backend`) |
+| `CLASSMIND_FRONTEND` | `frontend/dist` | Folder of the built frontend that FastAPI serves |
+| `PORT` | `5000` | Port for `python asgi.py` |
+| `RELOAD` | _unset_ | `1` enables the uvicorn auto-reloader (used by `make dev-backend`) |
 
 ### Frontend (build-time, see [frontend/.env.example](frontend/.env.example))
 
@@ -445,14 +462,18 @@ classmind-ai/
 │   ├── app/
 │   │   ├── __init__.py          create_app() application factory
 │   │   ├── config.py            environment-driven configuration
-│   │   ├── database.py          SQLite schema, migration and connection helpers
-│   │   ├── errors.py            JSON error handlers and single-page-app fallback
+│   │   ├── models.py            SQLAlchemy schema (source of truth for migrations)
+│   │   ├── database.py          engine, SQL helper and migration runner (SQLite or PostgreSQL)
+│   │   ├── responses.py         Pydantic response models (shown at /api/docs)
+│   │   ├── errors.py            JSON error handlers, /static mount and single-page-app fallback
+│   │   ├── schemas.py           Pydantic request bodies
 │   │   ├── seed.py              loads demo data:  python -m app.seed --reset
 │   │   ├── demo_data.py         sample courses, faculty, transcripts and notes
 │   │   ├── demo_more_*.py       second half of each lecture (bio, stem, humanities, extra)
 │   │   ├── demo_extra_courses.py  Chemistry, Mathematics and English courses
-│   │   ├── api/                 HTTP layer, one blueprint per area
-│   │   │   ├── system.py        status, live analysis, serves the frontend
+│   │   ├── api/                 HTTP layer, one router per area
+│   │   │   ├── deps.py          per-request database dependency
+│   │   │   ├── system.py        status and live analysis
 │   │   │   ├── courses.py       course CRUD
 │   │   │   ├── lectures.py      lecture CRUD, analyze, audio
 │   │   │   ├── learning.py      tutor chat, bookmarks, quiz, attempts, revision plan
@@ -465,7 +486,9 @@ classmind-ai/
 │   │       ├── exporters.py     Markdown and text export
 │   │       └── pdf_export.py    PDF generation (ReportLab)
 │   ├── tests/                   pytest suite
-│   ├── wsgi.py                  dev server and gunicorn entry point
+│   ├── migrations/              Alembic migrations, applied automatically on startup
+│   ├── asgi.py                  ASGI entry point
+│   ├── gunicorn.conf.py         production server settings (gunicorn + uvicorn workers)
 │   └── requirements*.txt, pyproject.toml
 ├── frontend/
 │   ├── src/
@@ -538,7 +561,7 @@ notice. The app sets **no cookies** and has no analytics or ads.
 
 | Problem | What to check |
 |---|---|
-| `ECONNREFUSED` or proxy errors in the Vite terminal | The Flask backend is not running. Start `make dev-backend`. |
+| `ECONNREFUSED` or proxy errors in the Vite terminal | The FastAPI backend is not running. Start `make dev-backend`. |
 | Blank page in development | Open the browser console. Hard refresh with `Ctrl+Shift+R`. |
 | Microphone or live transcript does not work | Use Chrome or Edge, open the app on `localhost` or HTTPS, allow microphone access, and check your internet connection (speech recognition is online). |
 | Notes say "Generated by offline engine" | No `ANTHROPIC_API_KEY` is set, or the API call failed. The top bar shows which engine is active. |
@@ -552,7 +575,8 @@ notice. The app sets **no cookies** and has no analytics or ads.
 This is a **prototype**. Today:
 
 - There is **no login**: Teacher and Student is a view switch, not a security boundary. Put it behind a school network or single sign-on before using real student data.
-- SQLite allows one writer at a time, so the Docker image runs a single worker.
+- SQLite allows one writer at a time, so the server runs a single worker unless `DATABASE_URL` points at PostgreSQL.
+- The PostgreSQL path is covered by the portable SQL and the migration tests on SQLite, but the automated tests do not run against a live Postgres server yet.
 - Live speech recognition needs **Chrome or Edge** and an internet connection.
 - AI processing runs inside the web request, so very long lectures can be slow with Claude.
 
