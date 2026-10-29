@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useCourses, useLectures } from '../api/queries';
 import { Breadcrumb, EmptyState, LectureRow } from '../components/Common';
+import { Select } from '../components/Select';
 import { plural } from '../lib/format';
 
 type Sort = 'new' | 'old' | 'title' | 'score';
@@ -51,21 +52,29 @@ export function Library() {
             onChange={(e) => setInput(e.target.value)}
           />
         </div>
-        <select className="input" aria-label="Filter by course" style={{ maxWidth: 230 }} value={course} onChange={(e) => setCourse(e.target.value)}>
-          <option value="">All courses</option>
-          {courses.data?.map((c) => (
-            <option key={c.id} value={String(c.id)}>
-              {c.name}
-            </option>
-          ))}
-          <option value="none">No course</option>
-        </select>
-        <select className="input" aria-label="Sort" style={{ maxWidth: 190 }} value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-          <option value="new">Newest first</option>
-          <option value="old">Oldest first</option>
-          <option value="title">Title A–Z</option>
-          <option value="score">Lowest quiz score</option>
-        </select>
+        <Select
+          ariaLabel="Filter by course"
+          width={250}
+          value={course}
+          onChange={setCourse}
+          options={[
+            { value: '', label: 'All courses' },
+            ...(courses.data ?? []).map((c) => ({ value: String(c.id), label: c.name, hint: c.instructor || undefined, color: c.color })),
+            { value: 'none', label: 'No course' },
+          ]}
+        />
+        <Select
+          ariaLabel="Sort lectures"
+          width={200}
+          value={sort}
+          onChange={(v) => setSort(v as Sort)}
+          options={[
+            { value: 'new', label: 'Newest first' },
+            { value: 'old', label: 'Oldest first' },
+            { value: 'title', label: 'Title A–Z' },
+            { value: 'score', label: 'Lowest quiz score' },
+          ]}
+        />
       </div>
       <div className="mb-8">
         <div className="muted small">{lectures.data ? plural(items.length, 'lecture') + (q ? ` matching "${q}"` : '') : 'Loading…'}</div>

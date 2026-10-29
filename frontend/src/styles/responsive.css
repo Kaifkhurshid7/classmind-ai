@@ -170,3 +170,8 @@ body { overflow-x: hidden; }
   .container.page > .section-head:first-child { margin-top: 12px; }
   .page .row.wrap > select.input { max-width: none !important; flex: 1 1 100%; }
 }
+
+/* custom dropdowns fill the row on phones */
+@media (max-width: 640px) {
+  .page .row.wrap > .select, .askbar > .select { width: 100% !important; flex: 1 1 100%; }
+}
