@@ -25,8 +25,15 @@ def create_course():
     count = d.execute("SELECT COUNT(*) FROM courses").fetchone()[0]
     color = data.get("color") or COLORS[count % len(COLORS)]
     cur = d.execute(
-        "INSERT INTO courses(name,description,color,created) VALUES (?,?,?,?)",
-        (name[:120], (data.get("description") or "")[:500], color, now()),
+        "INSERT INTO courses(name,description,color,instructor,instructor_title,created) VALUES (?,?,?,?,?,?)",
+        (
+            name[:120],
+            (data.get("description") or "")[:500],
+            color,
+            (data.get("instructor") or "").strip()[:120],
+            (data.get("instructor_title") or "").strip()[:160],
+            now(),
+        ),
     )
     d.commit()
     return jsonify(dict(d.execute("SELECT * FROM courses WHERE id=?", (cur.lastrowid,)).fetchone())), 201
@@ -62,8 +69,15 @@ def update_course(cid):
     if not c:
         abort(404)
     d.execute(
-        "UPDATE courses SET name=?, description=?, color=? WHERE id=?",
-        ((data.get("name") or c["name"]).strip()[:120], data.get("description", c["description"])[:500], data.get("color") or c["color"], cid),
+        "UPDATE courses SET name=?, description=?, color=?, instructor=?, instructor_title=? WHERE id=?",
+        (
+            (data.get("name") or c["name"]).strip()[:120],
+            data.get("description", c["description"])[:500],
+            data.get("color") or c["color"],
+            data.get("instructor", c["instructor"] or "").strip()[:120],
+            data.get("instructor_title", c["instructor_title"] or "").strip()[:160],
+            cid,
+        ),
     )
     d.commit()
     return jsonify(dict(d.execute("SELECT * FROM courses WHERE id=?", (cid,)).fetchone()))
