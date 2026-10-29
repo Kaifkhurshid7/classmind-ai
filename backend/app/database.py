@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS courses (
   name TEXT NOT NULL,
   description TEXT DEFAULT '',
   color TEXT DEFAULT '#0056d2',
+  instructor TEXT DEFAULT '',
+  instructor_title TEXT DEFAULT '',
   created REAL NOT NULL
 );
 CREATE TABLE IF NOT EXISTS lectures (
@@ -78,6 +80,11 @@ def close_db(_exc=None):
 def init_db(path) -> None:
     conn = connect(path)
     conn.executescript(SCHEMA)
+    # lightweight migration for databases created before faculty fields existed
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(courses)")}
+    for col in ("instructor", "instructor_title"):
+        if col not in cols:
+            conn.execute(f"ALTER TABLE courses ADD COLUMN {col} TEXT DEFAULT ''")
     conn.commit()
     conn.close()
 

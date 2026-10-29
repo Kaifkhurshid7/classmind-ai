@@ -1,4 +1,4 @@
-.PHONY: install build run dev-backend dev-frontend test lint docker
+.PHONY: install build run dev-backend dev-frontend reseed test lint docker
 
 install:
 	pip install -r backend/requirements-dev.txt
@@ -17,6 +17,10 @@ dev-backend:
 
 dev-frontend:
 	cd frontend && npm run dev
+
+# Wipe the database and re-create the sample courses, faculty and lectures
+reseed:
+	cd backend && python -m app.seed --reset
 
 test:
 	cd backend && python -m pytest
