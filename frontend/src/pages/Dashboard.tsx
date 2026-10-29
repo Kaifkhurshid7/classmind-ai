@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useOverview } from '../api/queries';
-import { Avatar, HeroArt } from '../components/Art';
+import { Avatar } from '../components/Art';
 import { Async, CourseCard, EmptyState, LectureRow, StatTile, Thumb } from '../components/Common';
 import { CourseDialog } from '../components/CourseDialog';
+import { HeroSection, InsightPanels, QuickActions, Showcase } from '../components/HomeSections';
 import { Icon, type IconName } from '../components/Icon';
 import { useRole } from '../context/RoleContext';
 import { fmtDur } from '../lib/format';
@@ -14,6 +15,13 @@ const STEPS: [string, string, string, IconName][] = [
   ['PRACTICE', 'Test yourself', 'Ask the tutor, take quizzes and review flashcards generated from the lecture.', 'help'],
   ['GROW', 'Improve', 'Learning-gap analytics show what to revisit, with a personal revision plan.', 'chart'],
 ];
+
+/** Shorten text at a word boundary and add an ellipsis. */
+function clip(text: string | undefined, n: number): string {
+  const t = (text || '').trim();
+  if (t.length <= n) return t;
+  return t.slice(0, n).replace(/\s+\S*$/, '') + '…';
+}
 
 export function Dashboard() {
   const overview = useOverview();
@@ -32,34 +40,7 @@ export function Dashboard() {
         });
         return (
           <div>
-            <section className="hero">
-              <div className="container hero-inner">
-                <div className="hero-copy">
-                  <div className="badge mb-16">LEARN · UNDERSTAND · PRACTICE · GROW</div>
-                  <h1>Welcome back, {displayName}</h1>
-                  <p>
-                    {isTeacher
-                      ? 'Record a lecture and ClassMind turns it into a transcript, structured notes, a quiz and an AI tutor your students can learn from.'
-                      : 'Pick up where you left off. Review notes, ask the AI tutor about anything from class, and practise with quizzes and flashcards.'}
-                  </p>
-                  <div className="row wrap mt-24">
-                    {isTeacher && (
-                      <Link className="btn btn-primary btn-lg" to="/record">
-                        <Icon name="mic" size={20} />
-                        Record a lecture
-                      </Link>
-                    )}
-                    <Link className={'btn btn-lg ' + (isTeacher ? 'btn-outline' : 'btn-primary')} to="/library">
-                      <Icon name="book" size={20} />
-                      Browse lectures
-                    </Link>
-                  </div>
-                </div>
-                <div className="hero-art">
-                  <HeroArt />
-                </div>
-              </div>
-            </section>
+            <HeroSection name={displayName} isTeacher={isTeacher} courses={d.courses} />
 
             <div className="container">
               <div className="stats-strip">
@@ -72,6 +53,8 @@ export function Dashboard() {
             </div>
 
             <div className="container page">
+              <QuickActions isTeacher={isTeacher} continueId={c?.id} onNewCourse={() => setCreating(true)} />
+
               {c && (
                 <>
                   <div className="section-head">
@@ -82,7 +65,7 @@ export function Dashboard() {
                     <div>
                       <div className="xs muted mb-8">{(c.course_name || 'Lecture').toUpperCase()}</div>
                       <h3>{c.title}</h3>
-                      <p className="muted small mt-8">{(c.summary || '').slice(0, 200)}</p>
+                      <p className="muted small mt-8">{clip(c.summary, 190)}</p>
                       <div className="meta-row">
                         <span>
                           <Icon name="clock" size={14} />
@@ -132,12 +115,14 @@ export function Dashboard() {
                 <EmptyState icon="folder" title="No courses yet" text="Your teacher has not published any courses." />
               )}
 
+              <InsightPanels isTeacher={isTeacher} />
+
               {faculty.length > 0 && (
                 <>
                   <div className="section-head">
                     <h2>Meet your faculty</h2>
                   </div>
-                  <div className="grid grid-3 faculty-grid">
+                  <div className="grid grid-4 faculty-grid">
                     {faculty.map((f) => (
                       <div className="card faculty-card" key={f.name}>
                         <Avatar name={f.name} size={56} />
@@ -180,6 +165,11 @@ export function Dashboard() {
                   />
                 )}
               </div>
+
+              <div className="section-head">
+                <h2>See ClassMind in action</h2>
+              </div>
+              <Showcase />
 
               <div className="section-head">
                 <h2>How ClassMind works</h2>

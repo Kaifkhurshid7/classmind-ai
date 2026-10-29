@@ -40,7 +40,7 @@ body { overflow-x: hidden; }
   input, select, textarea, .input { font-size: 16px; }
 
   /* hero and stats */
-  .hero-inner { padding-top: 28px; padding-bottom: 56px; }
+  .hero-inner { padding-top: 28px; padding-bottom: 92px; }
   .hero h1 { font-size: 30px; }
   .hero p { font-size: 16.5px; }
   .hero .row.wrap .btn { flex: 1 1 100%; }
