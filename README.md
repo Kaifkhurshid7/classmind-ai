@@ -101,6 +101,18 @@ data/                  Created at runtime (SQLite DB + audio), git-ignored
 
 See [docs/API.md](docs/API.md) for the endpoint list.
 
+## Legal pages and site details
+
+The app includes a Privacy Policy, Terms of Service, Cookie & Storage Policy and a Contact & Support page
+(`/privacy`, `/terms`, `/cookies`, `/contact`), linked from the footer, plus a storage notice and an error boundary.
+
+- Set your organisation name, support/privacy emails, address and governing law in `frontend/.env.local`
+  (copy `frontend/.env.example`) and rebuild. They appear in the footer and policies.
+- The policy text describes what this software actually does (local SQLite storage, browser speech recognition,
+  optional Claude processing, Google Fonts, local storage only). It is a **template: have a lawyer review it for
+  your jurisdiction** (e.g. India's DPDP Act, GDPR, school and child-privacy rules) before launching, and update it if you
+  add login, analytics, or other data processing.
+
 ## Notes and limits (prototype)
 
 - Speech recognition runs in the browser (Chrome/Edge) and needs an internet connection. Pages must be opened via `localhost` or HTTPS for microphone access.
