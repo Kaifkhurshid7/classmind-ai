@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client';
 import { useConfirm } from '../../components/Modal';
+import { Select } from '../../components/Select';
 import { useRole } from '../../context/RoleContext';
 import { useToast } from '../../context/ToastContext';
 import type { TabProps } from './types';
@@ -113,11 +114,17 @@ export function AskTab({ id, detail, refresh }: TabProps) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send(input, mode)}
           />
-          <select className="input" style={{ maxWidth: 170 }} aria-label="Answer style" value={mode} onChange={(e) => setMode(e.target.value)}>
-            <option value="">Normal answer</option>
-            <option value="simple">Explain simply</option>
-            <option value="example">Give an example</option>
-          </select>
+          <Select
+            ariaLabel="Answer style"
+            width={190}
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: '', label: 'Normal answer' },
+              { value: 'simple', label: 'Explain simply' },
+              { value: 'example', label: 'Give an example' },
+            ]}
+          />
           <button className="btn btn-primary" disabled={busy} onClick={() => send(input, mode)}>
             Ask
           </button>
