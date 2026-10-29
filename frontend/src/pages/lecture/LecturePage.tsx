@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client';
 import { keys, useLecture } from '../../api/queries';
 import type { LectureDetail } from '../../api/types';
+import { Avatar } from '../../components/Art';
 import { Async, Breadcrumb } from '../../components/Common';
 import { Icon, type IconName } from '../../components/Icon';
 import { Menu } from '../../components/Menu';
@@ -167,6 +168,15 @@ function LectureView({ id, detail }: { id: string; detail: LectureDetail }) {
           <div className="row spread wrap" style={{ alignItems: 'flex-start' }}>
             <div className="grow">
               <h1>{L.title}</h1>
+              {L.instructor && (
+                <div className="lecture-instructor">
+                  <Avatar name={L.instructor} size={30} />
+                  <span>
+                    <b>{L.instructor}</b>
+                    {L.instructor_title && <em>{L.instructor_title}</em>}
+                  </span>
+                </div>
+              )}
               <div className="meta-row mt-8">
                 {L.course_name && (
                   <span>
