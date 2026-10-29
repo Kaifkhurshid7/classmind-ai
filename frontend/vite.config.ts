@@ -2,8 +2,8 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 
-// In production the Flask backend serves the built files under /static/,
-// so assets are emitted with that base path. In dev, Vite proxies /api to Flask.
+// In production the FastAPI backend serves the built files under /static/,
+// so assets are emitted with that base path. In dev, Vite proxies /api to FastAPI.
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/static/' : '/',
   plugins: [react()],
