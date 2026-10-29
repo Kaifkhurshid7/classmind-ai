@@ -40,11 +40,11 @@ With Docker: `docker compose up --build`. Tests: `make test`. Lint and type-chec
 
 On first run the app is filled with a realistic sample school so every screen has something to show:
 
-- **5 courses** (Biology, Physics, Python, Modern Indian History, Microeconomics), each with an instructor, title and department
-- **10 lectures of 10 to 13 minutes** (about 1,200 to 1,550 words each) with full spoken-style transcripts, timestamps and hand-written notes (summary, key points, concepts, sections, practice questions)
+- **8 courses** (Biology, Physics, Python, Modern Indian History, Microeconomics, Chemistry, Mathematics, English Communication), each with an instructor, title and department
+- **13 lectures of 10 to 13 minutes** (about 1,200 to 1,550 words each) with full spoken-style transcripts, timestamps and hand-written notes (summary, key points, concepts, sections, practice questions)
 - Quizzes, flashcards, tutor conversations, bookmarks and about 50 quiz attempts spread over the last month, so the analytics dashboard (trends, course comparison, score distribution, learning gaps, activity feed) is fully populated
 
-All people and content are fictional. Edit `backend/app/demo_data.py` (and the `demo_more_*.py` files with the second half of each lecture) to change it, then run `make reseed` to
+All people and content are fictional. Edit `backend/app/demo_data.py` (and the `demo_more_*.py` and `demo_extra_courses.py` files with the second half of each lecture and the extra courses) to change it, then run `make reseed` to
 wipe the database and reload (this deletes everything in it). Set `CLASSMIND_SEED=0` to start empty.
 The demo lectures have no audio file, so the player is hidden for them; lectures recorded in the studio do.
 
@@ -108,7 +108,7 @@ backend/
 frontend/              React + TypeScript app (Vite)
   src/
     api/               Fetch client, TanStack Query hooks, API types
-    components/        Layout, modals, menu, shared UI, Art (logo, hero and course artwork)
+    components/        Layout, Footer, modals, Menu, Select (accessible dropdown), Charts, Art (logo and artwork)
     context/           Role (teacher/student), toasts
     hooks/             useRecorder (speech-to-text, audio capture, level meter)
     pages/             Dashboard, Library, Course, Analytics, Studio, lecture/ (tabs)
