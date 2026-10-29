@@ -1,16 +1,30 @@
-.PHONY: install run test lint docker
+.PHONY: install build run dev-backend dev-frontend test lint docker
 
 install:
 	pip install -r backend/requirements-dev.txt
+	cd frontend && npm install
 
-run:
+# Production-style: build the React app, Flask serves it on :5000
+build:
+	cd frontend && npm run build
+
+run: build
 	cd backend && python wsgi.py
+
+# Development: run both (two terminals). UI on :5173 proxies /api to Flask on :5000
+dev-backend:
+	cd backend && FLASK_DEBUG=1 python wsgi.py
+
+dev-frontend:
+	cd frontend && npm run dev
 
 test:
 	cd backend && python -m pytest
+	cd frontend && npm test
 
 lint:
 	cd backend && python -m ruff check .
+	cd frontend && npm run typecheck
 
 docker:
 	docker compose up --build
